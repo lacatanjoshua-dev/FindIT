@@ -1,0 +1,10 @@
+/* For information on how to create your own theme, please refer to:
+http://ionicframework.com/docs/theming/ */
+:root {
+  --findit-teal: #0F766E;
+  --findit-mint: #10B981;
+  --findit-soft-mint: #E6F7F3;
+  --findit-warm-white: #FAFAF8;
+  --findit-text: #183B39;
+  --findit-muted: #718582;
+}

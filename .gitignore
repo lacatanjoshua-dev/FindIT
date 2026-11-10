@@ -1,0 +1,33 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+functions/node_modules
+
+# testing
+/coverage
+
+# production
+/dist
+functions/lib
+
+# environment variables and secrets
+.env
+.env.*
+functions/serviceAccountKey.json
+serviceAccountKey.json
+
+# misc
+.DS_Store
+/.nx
+/.nx/cache
+/.vscode/*
+!/.vscode/extensions.json
+.idea
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional eslint cache
+.eslintcache
