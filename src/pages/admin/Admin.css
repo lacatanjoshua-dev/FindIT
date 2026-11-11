@@ -203,7 +203,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
   gap: 8px;
   max-width: 560px;
   margin-top: 18px;
@@ -1190,5 +1190,389 @@
 
   .admin-stat strong {
     font-size: 24px;
+  }
+}
+
+
+/* ---------- Claim history cards (phones) ---------- */
+
+.admin-record-cards {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-record-card {
+  padding: 14px;
+  border: 1px solid #e3ece9;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.admin-record-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.admin-record-date {
+  color: #5f7471;
+  font-size: 12px;
+}
+
+.admin-record-name {
+  display: block;
+  margin: 10px 0;
+  font-size: 16px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.admin-record-people {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.admin-record-people > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: #f6f8f7;
+}
+
+.admin-record-people span {
+  color: #6b7f7c;
+  font-size: 11px;
+}
+
+.admin-record-people strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Phone fixes ---------- */
+
+@media (max-width: 768px) {
+  /* The menu opens below the teal header; the header already shows
+     the logo and the close button, so the sidebar brand is hidden. */
+  .admin-sidebar {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 76px);
+  }
+
+  .admin-brand {
+    display: none;
+  }
+
+  /* Status chips scroll sideways instead of wrapping. */
+  .admin-chips {
+    flex-wrap: nowrap;
+    margin-right: -18px;
+    padding-right: 18px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .admin-chip {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-record-cards {
+    display: flex;
+  }
+
+  .admin-table-wrap {
+    display: none;
+  }
+}
+
+/* ========================================
+   SEPARATE ACTIVITY / CLAIM HISTORY PAGES
+======================================== */
+
+.admin-two-col.even {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-section-gap {
+  margin-top: 12px;
+}
+
+.admin-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-main > .admin-panel + .admin-count,
+.admin-main > .admin-panel + .admin-message {
+  margin-top: 14px;
+}
+
+/* "Open Activity" / "View all claims" link at the bottom of a panel */
+.admin-panel-link {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding: 14px 0 0;
+  border: 0;
+  background: none;
+  color: #0f766e;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-panel-link ion-icon {
+  font-size: 16px;
+  transition: transform 0.15s ease;
+}
+
+.admin-panel-link:hover ion-icon {
+  transform: translateX(3px);
+}
+
+/* Recent claims on the dashboard */
+.admin-recent-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-recent-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef4f2;
+}
+
+.admin-recent-list li:last-child {
+  border-bottom: 0;
+}
+
+.admin-recent-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.admin-recent-dot.lost { background: #ef4444; }
+.admin-recent-dot.found { background: #10b981; }
+
+.admin-recent-list li > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-recent-list strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-recent-list span {
+  overflow: hidden;
+  color: #6b7f7c;
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-recent-list small {
+  flex-shrink: 0;
+  color: #6b7f7c;
+  font-size: 12px;
+}
+
+/* Chart sizes */
+.admin-chart.compact {
+  height: 150px;
+}
+
+.admin-chart.dense {
+  gap: 3px;
+}
+
+.admin-chart.dense .admin-chart-value {
+  font-size: 9.5px;
+}
+
+.admin-panel > .admin-legend {
+  margin-bottom: 10px;
+}
+
+/* 7 / 14 / 30 days switch */
+.admin-panel-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-range {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: #e9f2ef;
+}
+
+.admin-range button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #58736e;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-range button.active {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+/* Category bars split into Lost (red) and Found (green) */
+.admin-cat-bar.split {
+  display: flex;
+}
+
+.admin-cat-bar.split > div {
+  border-radius: 0;
+}
+
+.admin-cat-bar.split > .lost { background: #ef4444; }
+.admin-cat-bar.split > .found { background: #10b981; }
+
+.admin-cat-meta {
+  margin: 6px 0 0;
+  color: #6b7f7c;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .admin-two-col.even {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-chart.dense .admin-chart-value {
+    display: none;
+  }
+
+  .admin-panel-tools {
+    width: 100%;
+  }
+
+  .admin-range {
+    flex: 1;
+  }
+
+  .admin-range button {
+    flex: 1;
+    padding: 0 8px;
+  }
+}
+
+/* ========================================
+   CLAIM HISTORY: TABLE ON EVERY SCREEN SIZE
+======================================== */
+
+/* Show the table on phones too (overrides the earlier card layout). */
+@media (max-width: 640px) {
+  .admin-record-cards {
+    display: none;
+  }
+
+  .admin-table-wrap {
+    display: block;
+  }
+}
+
+.admin-table-hint {
+  display: none;
+  margin: 0 0 8px;
+  color: #6b7f7c;
+  font-size: 12px;
+}
+
+.admin-table {
+  background: #ffffff;
+}
+
+.admin-table tbody tr:nth-child(even) td {
+  background: #fafcfb;
+}
+
+.admin-table .num {
+  width: 1%;
+  color: #8aa09c;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .admin-table-hint {
+    display: block;
+  }
+
+  .admin-table {
+    min-width: 640px;
+    font-size: 13px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 10px 12px;
+  }
+
+  /* Keep the item name visible while the table scrolls sideways. */
+  .admin-table .sticky {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    min-width: 120px;
+    max-width: 160px;
+    box-shadow: 1px 0 0 #e3ece9;
+  }
+
+  .admin-table td.sticky {
+    background: #ffffff;
+  }
+
+  .admin-table tbody tr:nth-child(even) td.sticky {
+    background: #fafcfb;
+  }
+
+  .admin-table th.sticky {
+    background: #e6f7f3;
+  }
+
+  /* The # column scrolls away; the item name stays at the left edge. */
+  .admin-table .num {
+    display: none;
   }
 }

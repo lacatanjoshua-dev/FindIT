@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { FC, RefObject } from 'react';
+import type { FC } from 'react';
 
 import {
   IonButton,
@@ -16,7 +16,7 @@ import {
 } from '@ionic/react';
 
 import {
-  arrowBackOutline,
+  arrowForward,
   barChartOutline,
   checkmarkCircleOutline,
   closeOutline,
@@ -53,6 +53,8 @@ type AdminDashboardProps = {
   onOpenReports: () => void;
 };
 
+type AdminView = 'dashboard' | 'activity' | 'history' | 'users';
+
 type TimestampLike = {
   toDate?: () => Date;
 } | null;
@@ -84,7 +86,14 @@ type AdminUser = {
   role?: string;
 };
 
-const CHART_DAYS = 14;
+type ChartDay = {
+  date: Date;
+  key: string;
+  lost: number;
+  found: number;
+};
+
+// ---------- Helpers ----------
 
 const formatDateTime = (value?: TimestampLike) => {
   const date = value?.toDate?.();
@@ -102,6 +111,9 @@ const formatDateTime = (value?: TimestampLike) => {
   });
 };
 
+const shortDate = (date: Date) =>
+  date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
 // When the report was made: createdAt if saved, else the "YYYY-MM-DD" date.
 const getReportedOn = (data: Record<string, unknown>): Date | null => {
   const created = (data.createdAt as TimestampLike)?.toDate?.();
@@ -117,14 +129,122 @@ const getReportedOn = (data: Record<string, unknown>): Date | null => {
     : null;
 };
 
+const claimShortDate = (record: ClaimRecord) => {
+  const date = record.claimedAt?.toDate?.();
+  return date ? shortDate(date) : '';
+};
+
 const dayKey = (date: Date) =>
   `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+const startOfToday = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+};
+
+// Builds one bucket per day for the last `days` days, with Lost/Found counts.
+const buildDays = (items: ItemSummary[], days: number): ChartDay[] => {
+  const today = startOfToday();
+
+  const result = Array.from({ length: days }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - (days - 1 - index));
+    return { date, key: dayKey(date), lost: 0, found: 0 };
+  });
+
+  const byKey = new Map(result.map((day) => [day.key, day]));
+
+  items.forEach((item) => {
+    if (!item.reportedOn) return;
+
+    const day = byKey.get(dayKey(item.reportedOn));
+
+    if (day) {
+      if (item.type === 'Lost') day.lost += 1;
+      else day.found += 1;
+    }
+  });
+
+  return result;
+};
 
 const getUserName = (user: AdminUser) =>
   user.displayName?.trim() ||
   user.fullName?.trim() ||
   user.name?.trim() ||
   '';
+
+// ---------- Small components ----------
+
+type ReportsChartProps = {
+  days: ChartDay[];
+  compact?: boolean;
+};
+
+// Stacked bar chart: Lost (red) and Found (green) reports per day.
+const ReportsChart: FC<ReportsChartProps> = ({ days, compact = false }) => {
+  const max = Math.max(1, ...days.map((day) => day.lost + day.found));
+  const total = days.reduce((sum, day) => sum + day.lost + day.found, 0);
+
+  // Show fewer date labels when there are many bars.
+  const labelEvery = days.length <= 7 ? 1 : days.length <= 14 ? 2 : 5;
+
+  return (
+    <div
+      className={`admin-chart ${compact ? 'compact' : ''} ${
+        days.length > 14 ? 'dense' : ''
+      }`}
+      style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
+      role="img"
+      aria-label={`Bar chart of Lost and Found reports per day for the last ${days.length} days. ${total} reports in total.`}
+    >
+      {days.map((day, index) => {
+        const count = day.lost + day.found;
+        const showLabel = (days.length - 1 - index) % labelEvery === 0;
+
+        return (
+          <div
+            className="admin-chart-col"
+            key={day.key}
+            title={`${shortDate(day.date)}: ${day.lost} lost, ${day.found} found`}
+          >
+            <span className="admin-chart-value">{count > 0 ? count : ''}</span>
+
+            <div className="admin-chart-track">
+              <div
+                className="admin-chart-stack"
+                style={{ height: `${(count / max) * 100}%` }}
+              >
+                {day.found > 0 && (
+                  <div className="admin-chart-seg found" style={{ flexGrow: day.found }} />
+                )}
+                {day.lost > 0 && (
+                  <div className="admin-chart-seg lost" style={{ flexGrow: day.lost }} />
+                )}
+              </div>
+            </div>
+
+            <span className="admin-chart-label">
+              {showLabel
+                ? days.length <= 7
+                  ? day.date.toLocaleDateString('en-US', { weekday: 'short' })
+                  : shortDate(day.date)
+                : ''}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const ChartLegend: FC = () => (
+  <div className="admin-legend" aria-hidden="true">
+    <span><i className="lost" /> Lost</span>
+    <span><i className="found" /> Found</span>
+  </div>
+);
 
 type BreakdownProps = {
   label: string;
@@ -135,13 +255,7 @@ type BreakdownProps = {
 };
 
 // Progress card: how many Lost (or Found) items were already claimed.
-const Breakdown: FC<BreakdownProps> = ({
-  label,
-  tone,
-  claimed,
-  unclaimed,
-  loading,
-}) => {
+const Breakdown: FC<BreakdownProps> = ({ label, tone, claimed, unclaimed, loading }) => {
   const total = claimed + unclaimed;
   const percent = total > 0 ? Math.round((claimed / total) * 100) : 0;
 
@@ -167,9 +281,7 @@ const Breakdown: FC<BreakdownProps> = ({
       </div>
 
       <p>
-        {loading
-          ? 'Loading...'
-          : `${claimed} claimed · ${unclaimed} not yet claimed`}
+        {loading ? 'Loading...' : `${claimed} claimed · ${unclaimed} not yet claimed`}
       </p>
     </div>
   );
@@ -200,12 +312,11 @@ const UserCard: FC<{ user: AdminUser }> = ({ user }) => {
   );
 };
 
-const AdminDashboard: FC<AdminDashboardProps> = ({
-  onLogout,
-  onOpenReports,
-}) => {
+// ======================================================
+
+const AdminDashboard: FC<AdminDashboardProps> = ({ onLogout, onOpenReports }) => {
+  const [view, setView] = useState<AdminView>('dashboard');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showUsersPage, setShowUsersPage] = useState(false);
 
   const [items, setItems] = useState<ItemSummary[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
@@ -222,10 +333,15 @@ const AdminDashboard: FC<AdminDashboardProps> = ({
   const [usersError, setUsersError] = useState('');
   const [userSearch, setUserSearch] = useState('');
 
-  const historySectionRef = useRef<HTMLDivElement>(null);
-  const chartSectionRef = useRef<HTMLDivElement>(null);
+  const [activityDays, setActivityDays] = useState(14);
 
-  const closeMenu = () => setMenuOpen(false);
+  const contentRef = useRef<HTMLIonContentElement>(null);
+
+  const goTo = (next: AdminView) => {
+    setMenuOpen(false);
+    setView(next);
+    void contentRef.current?.scrollToTop(0);
+  };
 
   const loadUsers = async () => {
     setUsersLoading(true);
@@ -242,9 +358,7 @@ const AdminDashboard: FC<AdminDashboardProps> = ({
       );
     } catch (error) {
       console.error('Error loading users:', error);
-      setUsersError(
-        'Unable to load registered users. Please check your Firestore rules.'
-      );
+      setUsersError('Unable to load registered users. Please check your Firestore rules.');
     } finally {
       setUsersLoading(false);
     }
@@ -261,10 +375,7 @@ const AdminDashboard: FC<AdminDashboardProps> = ({
 
             return {
               id: itemDoc.id,
-              type:
-                String(data.type ?? 'Lost').toLowerCase() === 'found'
-                  ? 'Found'
-                  : 'Lost',
+              type: String(data.type ?? 'Lost').toLowerCase() === 'found' ? 'Found' : 'Lost',
               status:
                 data.status === 'Claimed' || data.status === 'Resolved'
                   ? data.status
@@ -280,9 +391,7 @@ const AdminDashboard: FC<AdminDashboardProps> = ({
       },
       (error) => {
         console.error('Error loading report statistics:', error);
-        setItemsError(
-          'Unable to load report statistics. Please check your Firestore rules.'
-        );
+        setItemsError('Unable to load report statistics. Please check your Firestore rules.');
         setItemsLoading(false);
       }
     );
@@ -311,9 +420,7 @@ const AdminDashboard: FC<AdminDashboardProps> = ({
       },
       (error) => {
         console.error('Error loading claim history:', error);
-        setRecordsError(
-          'Unable to load the claim history. Please check your Firestore rules.'
-        );
+        setRecordsError('Unable to load the claim history. Please check your Firestore rules.');
         setRecordsLoading(false);
       }
     );
@@ -326,82 +433,94 @@ const AdminDashboard: FC<AdminDashboardProps> = ({
     };
   }, []);
 
-  const scrollTo = (ref: RefObject<HTMLDivElement | null>) => {
-    closeMenu();
-
-    window.setTimeout(() => {
-      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  };
-
-  // ---------- Statistics ----------
+  // ---------- Overall statistics ----------
 
   const isClaimed = (item: ItemSummary) => item.status !== 'Active';
 
   const totalReports = items.length;
   const claimedReports = items.filter(isClaimed).length;
-  const unclaimedReports = totalReports - claimedReports;
-
   const lostItems = items.filter((item) => item.type === 'Lost');
   const foundItems = items.filter((item) => item.type === 'Found');
-
   const lostClaimed = lostItems.filter(isClaimed).length;
   const foundClaimed = foundItems.filter(isClaimed).length;
 
-  // Reports per day for the last 14 days.
-  const chartDays = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // ---------- Activity ----------
 
-    const days = Array.from({ length: CHART_DAYS }, (_, index) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() - (CHART_DAYS - 1 - index));
+  const weekDays = useMemo(() => buildDays(items, 7), [items]);
+  const weekTotal = weekDays.reduce((sum, day) => sum + day.lost + day.found, 0);
 
-      return { date, key: dayKey(date), lost: 0, found: 0 };
-    });
+  const activityChart = useMemo(() => buildDays(items, activityDays), [items, activityDays]);
 
-    const byKey = new Map(days.map((day) => [day.key, day]));
+  const activityStats = useMemo(() => {
+    const lost = activityChart.reduce((sum, day) => sum + day.lost, 0);
+    const found = activityChart.reduce((sum, day) => sum + day.found, 0);
 
-    items.forEach((item) => {
-      if (!item.reportedOn) return;
+    const busiest = activityChart.reduce<ChartDay | null>(
+      (best, day) =>
+        day.lost + day.found > (best ? best.lost + best.found : 0) ? day : best,
+      null
+    );
 
-      const day = byKey.get(dayKey(item.reportedOn));
+    const since = activityChart[0]?.date ?? startOfToday();
+    const claimsInPeriod = records.filter((record) => {
+      const date = record.claimedAt?.toDate?.();
+      return date ? date >= since : false;
+    }).length;
 
-      if (day) {
-        if (item.type === 'Lost') day.lost += 1;
-        else day.found += 1;
-      }
-    });
+    return { lost, found, total: lost + found, busiest, claimsInPeriod };
+  }, [activityChart, records]);
 
-    return days;
-  }, [items]);
-
-  const chartMax = Math.max(1, ...chartDays.map((day) => day.lost + day.found));
-  const chartTotal = chartDays.reduce((sum, day) => sum + day.lost + day.found, 0);
-
-  // Most reported categories.
-  const topCategories = useMemo(() => {
-    const counts = new Map<string, number>();
+  // All categories with Lost / Found / Claimed counts.
+  const categoryRows = useMemo(() => {
+    const rows = new Map<string, { name: string; lost: number; found: number; claimed: number }>();
 
     items.forEach((item) => {
-      counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
+      const row = rows.get(item.category) ?? {
+        name: item.category,
+        lost: 0,
+        found: 0,
+        claimed: 0,
+      };
+
+      if (item.type === 'Lost') row.lost += 1;
+      else row.found += 1;
+      if (isClaimed(item)) row.claimed += 1;
+
+      rows.set(item.category, row);
     });
 
-    return [...counts.entries()]
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+    return [...rows.values()].sort(
+      (a, b) => b.lost + b.found - (a.lost + a.found)
+    );
   }, [items]);
 
-  const topCategoryMax = topCategories[0]?.count ?? 1;
+  const categoryMax = categoryRows[0] ? categoryRows[0].lost + categoryRows[0].found : 1;
 
   // ---------- Claim history ----------
+
+  const historyStats = useMemo(() => {
+    const now = new Date();
+    const thisMonth = records.filter((record) => {
+      const date = record.claimedAt?.toDate?.();
+      return (
+        date &&
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear()
+      );
+    }).length;
+
+    return {
+      total: records.length,
+      thisMonth,
+      lost: records.filter((record) => record.itemType === 'Lost').length,
+      found: records.filter((record) => record.itemType === 'Found').length,
+    };
+  }, [records]);
 
   const filteredRecords = records.filter((record) => {
     const searchText = historySearch.trim().toLowerCase();
 
-    const matchesFilter =
-      historyFilter === 'All' || record.itemType === historyFilter;
+    const matchesFilter = historyFilter === 'All' || record.itemType === historyFilter;
 
     const matchesSearch =
       record.itemName.toLowerCase().includes(searchText) ||
@@ -420,6 +539,22 @@ const AdminDashboard: FC<AdminDashboardProps> = ({
         record.itemType,
         record.ownerName,
         record.finderName,
+      ]),
+    ]);
+  };
+
+  const exportActivity = () => {
+    downloadCsv(`findit-activity-${activityDays}-days-${todayStamp()}`, [
+      ['Date', 'Lost reports', 'Found reports', 'Total'],
+      ...activityChart.map((day) => [
+        day.date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        }),
+        day.lost,
+        day.found,
+        day.lost + day.found,
       ]),
     ]);
   };
@@ -452,127 +587,489 @@ const AdminDashboard: FC<AdminDashboardProps> = ({
     ]);
   };
 
-  const brandTitle = (text: string) => (
-    <span
-      className="brand-title"
-      style={{
-        display: 'inline-flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: '10px',
-        verticalAlign: 'middle',
-      }}
-    >
-      <FindItLogo
-        size={28}
-        background="#ffffff"
-        foreground="#0f766e"
-        radius={32}
-        label=""
-      />
-      {text}
-    </span>
+  // ---------- Navigation ----------
+
+  const navItems: { view: AdminView | 'reports'; label: string; icon: string }[] = [
+    { view: 'dashboard', label: 'Dashboard', icon: gridOutline },
+    { view: 'reports', label: 'Lost & Found Reports', icon: documentTextOutline },
+    { view: 'activity', label: 'Activity', icon: barChartOutline },
+    { view: 'history', label: 'Claim History', icon: timeOutline },
+    { view: 'users', label: 'Users', icon: peopleOutline },
+  ];
+
+  const pageTitles: Record<AdminView, string> = {
+    dashboard: 'FindIt Admin',
+    activity: 'Activity',
+    history: 'Claim History',
+    users: 'Users',
+  };
+
+  // ======================= VIEWS =======================
+
+  const dashboardView = (
+    <>
+      <section className="admin-hero">
+        <p className="admin-eyebrow">ADMINISTRATION</p>
+        <h1>Dashboard Overview</h1>
+        <p>A quick look at reports, returns and users. Open a section for details.</p>
+
+        <div className="admin-hero-actions">
+          <button type="button" className="admin-btn admin-btn-light" onClick={onOpenReports}>
+            <IonIcon icon={documentTextOutline} />
+            Manage Reports
+          </button>
+        </div>
+      </section>
+
+      {itemsError && <div className="admin-message error">{itemsError}</div>}
+
+      <div className="admin-stat-grid">
+        <div className="admin-stat">
+          <div className="admin-stat-icon teal">
+            <IonIcon icon={documentTextOutline} />
+          </div>
+          <p>Total Reports</p>
+          <strong>{itemsLoading ? '–' : totalReports}</strong>
+          <span>
+            {itemsLoading ? 'Loading...' : `${lostItems.length} lost · ${foundItems.length} found`}
+          </span>
+        </div>
+
+        <div className="admin-stat">
+          <div className="admin-stat-icon mint">
+            <IonIcon icon={checkmarkCircleOutline} />
+          </div>
+          <p>Claimed</p>
+          <strong>{itemsLoading ? '–' : claimedReports}</strong>
+          <span>Returned to owners</span>
+        </div>
+
+        <div className="admin-stat">
+          <div className="admin-stat-icon amber">
+            <IonIcon icon={timeOutline} />
+          </div>
+          <p>Still Active</p>
+          <strong>{itemsLoading ? '–' : totalReports - claimedReports}</strong>
+          <span>Waiting for the owner</span>
+        </div>
+
+        <div className="admin-stat">
+          <div className="admin-stat-icon blue">
+            <IonIcon icon={peopleOutline} />
+          </div>
+          <p>Users</p>
+          <strong>{usersLoading ? '–' : users.length}</strong>
+          <span>Registered accounts</span>
+        </div>
+      </div>
+
+      <div className="admin-two-col even">
+        {/* This week (preview of Activity) */}
+        <section className="admin-panel">
+          <div className="admin-panel-head">
+            <div>
+              <h2>This week</h2>
+              <p>
+                {itemsLoading
+                  ? 'Loading...'
+                  : `${weekTotal} ${weekTotal === 1 ? 'report' : 'reports'} in the last 7 days`}
+              </p>
+            </div>
+            <ChartLegend />
+          </div>
+
+          <ReportsChart days={weekDays} compact />
+
+          <button type="button" className="admin-panel-link" onClick={() => goTo('activity')}>
+            Open Activity
+            <IonIcon icon={arrowForward} />
+          </button>
+        </section>
+
+        {/* Recent claims (preview of Claim History) */}
+        <section className="admin-panel">
+          <div className="admin-panel-head">
+            <div>
+              <h2>Recent claims</h2>
+              <p>
+                {recordsLoading
+                  ? 'Loading...'
+                  : `${records.length} ${records.length === 1 ? 'item' : 'items'} returned in total`}
+              </p>
+            </div>
+          </div>
+
+          {recordsLoading ? (
+            <div className="admin-empty small">Loading...</div>
+          ) : records.length === 0 ? (
+            <div className="admin-empty small">No items have been claimed yet.</div>
+          ) : (
+            <ul className="admin-recent-list">
+              {records.slice(0, 3).map((record) => (
+                <li key={record.id}>
+                  <span className={`admin-recent-dot ${record.itemType === 'Lost' ? 'lost' : 'found'}`} />
+                  <div>
+                    <strong>{record.itemName}</strong>
+                    <span>
+                      {record.ownerName} received from {record.finderName}
+                    </span>
+                  </div>
+                  <small>{claimShortDate(record)}</small>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <button type="button" className="admin-panel-link" onClick={() => goTo('history')}>
+            View all claims
+            <IonIcon icon={arrowForward} />
+          </button>
+        </section>
+      </div>
+
+      <div className="admin-section-title">
+        <h2>Claim Progress</h2>
+        <p>How many reports were already claimed.</p>
+      </div>
+
+      <div className="admin-breakdown-grid">
+        <Breakdown
+          label="Lost items"
+          tone="lost"
+          claimed={lostClaimed}
+          unclaimed={lostItems.length - lostClaimed}
+          loading={itemsLoading}
+        />
+        <Breakdown
+          label="Found items"
+          tone="found"
+          claimed={foundClaimed}
+          unclaimed={foundItems.length - foundClaimed}
+          loading={itemsLoading}
+        />
+      </div>
+    </>
   );
 
-  // ================= MANAGE USERS PAGE =================
-  if (showUsersPage) {
-    return (
-      <IonPage>
-        <IonHeader className="findit-header">
-          <IonToolbar>
-            <IonButton
-              slot="start"
-              fill="clear"
-              aria-label="Back to dashboard"
-              onClick={() => setShowUsersPage(false)}
-            >
-              <IonIcon icon={arrowBackOutline} />
-            </IonButton>
+  const activityView = (
+    <>
+      <section className="admin-hero">
+        <p className="admin-eyebrow">ANALYTICS</p>
+        <h1>Activity</h1>
+        <p>How many items are reported each day, and what kinds of items they are.</p>
 
-            <IonTitle>Manage Users</IonTitle>
+        <div className="admin-hero-stats">
+          <div>
+            <strong>{itemsLoading ? '–' : activityStats.total}</strong>
+            <span>Reports</span>
+          </div>
+          <div>
+            <strong>{itemsLoading ? '–' : activityStats.lost}</strong>
+            <span>Lost</span>
+          </div>
+          <div>
+            <strong>{itemsLoading ? '–' : activityStats.found}</strong>
+            <span>Found</span>
+          </div>
+          <div>
+            <strong>{recordsLoading ? '–' : activityStats.claimsInPeriod}</strong>
+            <span>Returned</span>
+          </div>
+        </div>
+      </section>
 
-            <IonButton slot="end" fill="clear" onClick={onLogout} aria-label="Logout">
-              <IonIcon icon={logOutOutline} slot="start" />
-              <span className="admin-logout-label">Logout</span>
-            </IonButton>
-          </IonToolbar>
-        </IonHeader>
+      {itemsError && <div className="admin-message error">{itemsError}</div>}
 
-        <IonContent className="admin-content">
-          <main className="admin-main admin-main-narrow">
-            <section className="admin-hero">
-              <p className="admin-eyebrow">ACCOUNT MANAGEMENT</p>
-              <h1>Registered Users</h1>
-              <p>View and search FindIt student accounts.</p>
+      <section className="admin-panel">
+        <div className="admin-panel-head">
+          <div>
+            <h2>Reports per day</h2>
+            <p>
+              Last {activityDays} days
+              {activityStats.busiest
+                ? ` · busiest: ${shortDate(activityStats.busiest.date)} (${
+                    activityStats.busiest.lost + activityStats.busiest.found
+                  })`
+                : ''}
+            </p>
+          </div>
 
-              <div className="admin-hero-stats">
-                <div>
-                  <strong>{usersLoading ? '–' : users.length}</strong>
-                  <span>Accounts</span>
-                </div>
-              </div>
-            </section>
-
-            <div className="admin-toolbar">
-              <IonSearchbar
-                className="findit-search admin-search"
-                placeholder="Search name, email, student ID..."
-                value={userSearch}
-                debounce={150}
-                onIonInput={(event) => setUserSearch(event.detail.value || '')}
-              />
-
-              <div className="admin-toolbar-actions">
+          <div className="admin-panel-tools">
+            <div className="admin-range" role="group" aria-label="Time range">
+              {[7, 14, 30].map((days) => (
                 <button
+                  key={days}
                   type="button"
-                  className="admin-btn"
-                  onClick={() => void loadUsers()}
-                  disabled={usersLoading}
+                  className={activityDays === days ? 'active' : ''}
+                  aria-pressed={activityDays === days}
+                  onClick={() => setActivityDays(days)}
                 >
-                  <IonIcon icon={refreshOutline} />
-                  {usersLoading ? 'Loading...' : 'Refresh'}
+                  {days} days
                 </button>
-
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-primary"
-                  onClick={exportUsers}
-                  disabled={usersLoading || filteredUsers.length === 0}
-                >
-                  <IonIcon icon={downloadOutline} />
-                  Export CSV
-                </button>
-              </div>
+              ))}
             </div>
 
-            <p className="admin-count">
-              Showing {filteredUsers.length} of {users.length} users
-            </p>
+            <button
+              type="button"
+              className="admin-btn"
+              onClick={exportActivity}
+              disabled={itemsLoading}
+            >
+              <IonIcon icon={downloadOutline} />
+              CSV
+            </button>
+          </div>
+        </div>
 
-            {usersError && <div className="admin-message error">{usersError}</div>}
+        <ChartLegend />
+        <ReportsChart days={activityChart} />
+      </section>
 
-            {usersLoading ? (
-              <div className="admin-empty">Loading registered users...</div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="admin-empty">
-                {users.length === 0
-                  ? 'No registered users found.'
-                  : 'No users match your search.'}
-              </div>
-            ) : (
-              <div className="admin-users-list">
-                {filteredUsers.map((user) => (
-                  <UserCard key={user.id} user={user} />
+      <section className="admin-panel admin-section-gap">
+        <div className="admin-panel-head">
+          <div>
+            <h2>Categories</h2>
+            <p>All reports by kind of item, with how many were claimed</p>
+          </div>
+        </div>
+
+        {itemsLoading ? (
+          <div className="admin-empty small">Loading...</div>
+        ) : categoryRows.length === 0 ? (
+          <div className="admin-empty small">No reports yet.</div>
+        ) : (
+          <ul className="admin-cat-list">
+            {categoryRows.map((row) => {
+              const total = row.lost + row.found;
+
+              return (
+                <li key={row.name}>
+                  <div className="admin-cat-row">
+                    <span>
+                      <IonIcon icon={pricetagOutline} />
+                      {row.name}
+                    </span>
+                    <strong>{total}</strong>
+                  </div>
+
+                  <div className="admin-cat-bar split">
+                    <div
+                      className="lost"
+                      style={{ width: `${(row.lost / categoryMax) * 100}%` }}
+                    />
+                    <div
+                      className="found"
+                      style={{ width: `${(row.found / categoryMax) * 100}%` }}
+                    />
+                  </div>
+
+                  <p className="admin-cat-meta">
+                    {row.lost} lost · {row.found} found · {row.claimed} claimed
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </>
+  );
+
+  const historyView = (
+    <>
+      <section className="admin-hero">
+        <p className="admin-eyebrow">RECORDS</p>
+        <h1>Claim History</h1>
+        <p>
+          Items that owners confirmed they received in the app. Each record is
+          saved automatically and cannot be edited.
+        </p>
+
+        <div className="admin-hero-stats">
+          <div>
+            <strong>{recordsLoading ? '–' : historyStats.total}</strong>
+            <span>All time</span>
+          </div>
+          <div>
+            <strong>{recordsLoading ? '–' : historyStats.thisMonth}</strong>
+            <span>This month</span>
+          </div>
+          <div>
+            <strong>{recordsLoading ? '–' : historyStats.lost}</strong>
+            <span>Lost items</span>
+          </div>
+          <div>
+            <strong>{recordsLoading ? '–' : historyStats.found}</strong>
+            <span>Found items</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-toolbar">
+          <IonSearchbar
+            className="findit-search admin-search"
+            placeholder="Search item, owner or finder..."
+            value={historySearch}
+            debounce={150}
+            onIonInput={(event) => setHistorySearch(event.detail.value || '')}
+          />
+
+          <button
+            type="button"
+            className="admin-btn admin-btn-primary"
+            onClick={exportClaimHistory}
+            disabled={recordsLoading || filteredRecords.length === 0}
+          >
+            <IonIcon icon={downloadOutline} />
+            Export CSV
+          </button>
+        </div>
+
+        <IonSegment
+          className="admin-segment"
+          value={historyFilter}
+          onIonChange={(event) => setHistoryFilter(String(event.detail.value ?? 'All'))}
+        >
+          <IonSegmentButton value="All">
+            <IonLabel>All</IonLabel>
+          </IonSegmentButton>
+          <IonSegmentButton value="Lost">
+            <IonLabel>Lost</IonLabel>
+          </IonSegmentButton>
+          <IonSegmentButton value="Found">
+            <IonLabel>Found</IonLabel>
+          </IonSegmentButton>
+        </IonSegment>
+      </section>
+
+      {recordsError && <div className="admin-message error">{recordsError}</div>}
+
+      <p className="admin-count">
+        {filteredRecords.length} {filteredRecords.length === 1 ? 'record' : 'records'}
+      </p>
+
+      {recordsLoading ? (
+        <div className="admin-empty">Loading claim history...</div>
+      ) : filteredRecords.length === 0 ? (
+        <div className="admin-empty">
+          {records.length === 0
+            ? 'No items have been claimed yet.'
+            : 'No records match your search or filter.'}
+        </div>
+      ) : (
+        <>
+          <p className="admin-table-hint">Swipe the table sideways to see all columns.</p>
+
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th scope="col" className="num">#</th>
+                  <th scope="col" className="sticky">Item</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Owner (Received)</th>
+                  <th scope="col">Finder (Returned)</th>
+                  <th scope="col">Date Claimed</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredRecords.map((record, index) => (
+                  <tr key={record.id}>
+                    <td className="num">{index + 1}</td>
+                    <td className="strong sticky">{record.itemName}</td>
+                    <td>
+                      <span className={`admin-pill ${record.itemType === 'Lost' ? 'lost' : 'found'}`}>
+                        {record.itemType}
+                      </span>
+                    </td>
+                    <td>{record.ownerName}</td>
+                    <td>{record.finderName}</td>
+                    <td className="nowrap">{formatDateTime(record.claimedAt)}</td>
+                  </tr>
                 ))}
-              </div>
-            )}
-          </main>
-        </IonContent>
-      </IonPage>
-    );
-  }
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </>
+  );
 
-  // ================= DASHBOARD PAGE =================
+  const usersView = (
+    <>
+      <section className="admin-hero">
+        <p className="admin-eyebrow">ACCOUNT MANAGEMENT</p>
+        <h1>Registered Users</h1>
+        <p>View and search FindIt student accounts.</p>
+
+        <div className="admin-hero-stats">
+          <div>
+            <strong>{usersLoading ? '–' : users.length}</strong>
+            <span>Accounts</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-toolbar">
+          <IonSearchbar
+            className="findit-search admin-search"
+            placeholder="Search name, email, student ID..."
+            value={userSearch}
+            debounce={150}
+            onIonInput={(event) => setUserSearch(event.detail.value || '')}
+          />
+
+          <div className="admin-toolbar-actions">
+            <button
+              type="button"
+              className="admin-btn"
+              onClick={() => void loadUsers()}
+              disabled={usersLoading}
+            >
+              <IonIcon icon={refreshOutline} />
+              {usersLoading ? 'Loading...' : 'Refresh'}
+            </button>
+
+            <button
+              type="button"
+              className="admin-btn admin-btn-primary"
+              onClick={exportUsers}
+              disabled={usersLoading || filteredUsers.length === 0}
+            >
+              <IonIcon icon={downloadOutline} />
+              Export CSV
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <p className="admin-count">
+        Showing {filteredUsers.length} of {users.length} users
+      </p>
+
+      {usersError && <div className="admin-message error">{usersError}</div>}
+
+      {usersLoading ? (
+        <div className="admin-empty">Loading registered users...</div>
+      ) : filteredUsers.length === 0 ? (
+        <div className="admin-empty">
+          {users.length === 0 ? 'No registered users found.' : 'No users match your search.'}
+        </div>
+      ) : (
+        <div className="admin-users-list">
+          {filteredUsers.map((user) => (
+            <UserCard key={user.id} user={user} />
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  // ======================= PAGE =======================
+
   return (
     <IonPage>
       <IonHeader className="findit-header">
@@ -587,22 +1084,37 @@ const AdminDashboard: FC<AdminDashboardProps> = ({
             <IonIcon icon={menuOpen ? closeOutline : menuOutline} />
           </IonButton>
 
-          <IonTitle>{brandTitle('FindIt Admin')}</IonTitle>
-
-          <IonButton slot="end" fill="clear" onClick={onLogout} aria-label="Logout">
-            <IonIcon icon={logOutOutline} slot="start" />
-            <span className="admin-logout-label">Logout</span>
-          </IonButton>
+          <IonTitle>
+            <span
+              className="brand-title"
+              style={{
+                display: 'inline-flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: '10px',
+                verticalAlign: 'middle',
+              }}
+            >
+              <FindItLogo
+                size={28}
+                background="#ffffff"
+                foreground="#0f766e"
+                radius={32}
+                label=""
+              />
+              {pageTitles[view]}
+            </span>
+          </IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="admin-content">
+      <IonContent className="admin-content" ref={contentRef}>
         <div className="admin-layout">
           {menuOpen && (
             <button
               type="button"
               className="admin-menu-backdrop"
-              onClick={closeMenu}
+              onClick={() => setMenuOpen(false)}
               aria-label="Close navigation menu"
             />
           )}
@@ -620,64 +1132,28 @@ const AdminDashboard: FC<AdminDashboardProps> = ({
                 <h2>FindIt</h2>
                 <p>Administrator Panel</p>
               </div>
-
-              <button
-                type="button"
-                className="admin-close-menu"
-                onClick={closeMenu}
-                aria-label="Close menu"
-              >
-                <IonIcon icon={closeOutline} />
-              </button>
             </div>
 
             <nav className="admin-nav" aria-label="Admin">
-              <button type="button" className="admin-nav-item active" onClick={closeMenu}>
-                <IonIcon icon={gridOutline} />
-                <IonLabel>Dashboard</IonLabel>
-              </button>
-
-              <button
-                type="button"
-                className="admin-nav-item"
-                onClick={() => {
-                  closeMenu();
-                  onOpenReports();
-                }}
-              >
-                <IonIcon icon={documentTextOutline} />
-                <IonLabel>Lost &amp; Found Reports</IonLabel>
-              </button>
-
-              <button
-                type="button"
-                className="admin-nav-item"
-                onClick={() => scrollTo(chartSectionRef)}
-              >
-                <IonIcon icon={barChartOutline} />
-                <IonLabel>Activity</IonLabel>
-              </button>
-
-              <button
-                type="button"
-                className="admin-nav-item"
-                onClick={() => scrollTo(historySectionRef)}
-              >
-                <IonIcon icon={timeOutline} />
-                <IonLabel>Claim History</IonLabel>
-              </button>
-
-              <button
-                type="button"
-                className="admin-nav-item"
-                onClick={() => {
-                  closeMenu();
-                  setShowUsersPage(true);
-                }}
-              >
-                <IonIcon icon={peopleOutline} />
-                <IonLabel>Users</IonLabel>
-              </button>
+              {navItems.map((item) => (
+                <button
+                  key={item.view}
+                  type="button"
+                  className={`admin-nav-item ${view === item.view ? 'active' : ''}`}
+                  aria-current={view === item.view ? 'page' : undefined}
+                  onClick={() => {
+                    if (item.view === 'reports') {
+                      setMenuOpen(false);
+                      onOpenReports();
+                    } else {
+                      goTo(item.view);
+                    }
+                  }}
+                >
+                  <IonIcon icon={item.icon} />
+                  <IonLabel>{item.label}</IonLabel>
+                </button>
+              ))}
             </nav>
 
             <button type="button" className="admin-nav-item admin-nav-logout" onClick={onLogout}>
@@ -687,304 +1163,10 @@ const AdminDashboard: FC<AdminDashboardProps> = ({
           </aside>
 
           <main className="admin-main">
-            <section className="admin-hero">
-              <p className="admin-eyebrow">ADMINISTRATION</p>
-              <h1>Dashboard Overview</h1>
-              <p>
-                Monitor reports, see how many items were returned, and review
-                the claim history.
-              </p>
-
-              <div className="admin-hero-actions">
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-light"
-                  onClick={onOpenReports}
-                >
-                  <IonIcon icon={documentTextOutline} />
-                  Manage Reports
-                </button>
-              </div>
-            </section>
-
-            {itemsError && <div className="admin-message error">{itemsError}</div>}
-
-            {/* STAT CARDS */}
-            <div className="admin-stat-grid">
-              <div className="admin-stat">
-                <div className="admin-stat-icon teal">
-                  <IonIcon icon={documentTextOutline} />
-                </div>
-                <p>Total Reports</p>
-                <strong>{itemsLoading ? '–' : totalReports}</strong>
-                <span>
-                  {itemsLoading
-                    ? 'Loading...'
-                    : `${lostItems.length} lost · ${foundItems.length} found`}
-                </span>
-              </div>
-
-              <div className="admin-stat">
-                <div className="admin-stat-icon mint">
-                  <IonIcon icon={checkmarkCircleOutline} />
-                </div>
-                <p>Claimed</p>
-                <strong>{itemsLoading ? '–' : claimedReports}</strong>
-                <span>Returned to owners</span>
-              </div>
-
-              <div className="admin-stat">
-                <div className="admin-stat-icon amber">
-                  <IonIcon icon={timeOutline} />
-                </div>
-                <p>Still Active</p>
-                <strong>{itemsLoading ? '–' : unclaimedReports}</strong>
-                <span>Waiting for the owner</span>
-              </div>
-
-              <div className="admin-stat">
-                <div className="admin-stat-icon blue">
-                  <IonIcon icon={peopleOutline} />
-                </div>
-                <p>Users</p>
-                <strong>{usersLoading ? '–' : users.length}</strong>
-                <span>Registered accounts</span>
-              </div>
-            </div>
-
-            {/* ACTIVITY CHART + CATEGORIES */}
-            <div className="admin-two-col" ref={chartSectionRef}>
-              <section className="admin-panel admin-panel-wide">
-                <div className="admin-panel-head">
-                  <div>
-                    <h2>Reports in the last {CHART_DAYS} days</h2>
-                    <p>
-                      {itemsLoading
-                        ? 'Loading...'
-                        : `${chartTotal} ${chartTotal === 1 ? 'report' : 'reports'} in this period`}
-                    </p>
-                  </div>
-
-                  <div className="admin-legend" aria-hidden="true">
-                    <span><i className="lost" /> Lost</span>
-                    <span><i className="found" /> Found</span>
-                  </div>
-                </div>
-
-                <div
-                  className="admin-chart"
-                  role="img"
-                  aria-label={`Bar chart of Lost and Found reports per day for the last ${CHART_DAYS} days. ${chartTotal} reports in total.`}
-                >
-                  {chartDays.map((day, index) => {
-                    const total = day.lost + day.found;
-                    const showLabel = index % 2 === (CHART_DAYS - 1) % 2;
-
-                    return (
-                      <div
-                        className="admin-chart-col"
-                        key={day.key}
-                        title={`${day.date.toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}: ${day.lost} lost, ${day.found} found`}
-                      >
-                        <span className="admin-chart-value">{total > 0 ? total : ''}</span>
-
-                        <div className="admin-chart-track">
-                          <div
-                            className="admin-chart-stack"
-                            style={{ height: `${(total / chartMax) * 100}%` }}
-                          >
-                            {day.found > 0 && (
-                              <div
-                                className="admin-chart-seg found"
-                                style={{ flexGrow: day.found }}
-                              />
-                            )}
-                            {day.lost > 0 && (
-                              <div
-                                className="admin-chart-seg lost"
-                                style={{ flexGrow: day.lost }}
-                              />
-                            )}
-                          </div>
-                        </div>
-
-                        <span className="admin-chart-label">
-                          {showLabel
-                            ? day.date.toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                              })
-                            : ''}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-
-              <section className="admin-panel">
-                <div className="admin-panel-head">
-                  <div>
-                    <h2>Top Categories</h2>
-                    <p>Most reported kinds of items</p>
-                  </div>
-                </div>
-
-                {itemsLoading ? (
-                  <div className="admin-empty small">Loading...</div>
-                ) : topCategories.length === 0 ? (
-                  <div className="admin-empty small">No reports yet.</div>
-                ) : (
-                  <ul className="admin-cat-list">
-                    {topCategories.map((category) => (
-                      <li key={category.name}>
-                        <div className="admin-cat-row">
-                          <span>
-                            <IonIcon icon={pricetagOutline} />
-                            {category.name}
-                          </span>
-                          <strong>{category.count}</strong>
-                        </div>
-                        <div className="admin-cat-bar">
-                          <div
-                            style={{
-                              width: `${(category.count / topCategoryMax) * 100}%`,
-                            }}
-                          />
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </div>
-
-            {/* CLAIM PROGRESS */}
-            <div className="admin-section-title">
-              <h2>Claim Progress</h2>
-              <p>How many reports were already claimed.</p>
-            </div>
-
-            <div className="admin-breakdown-grid">
-              <Breakdown
-                label="Lost items"
-                tone="lost"
-                claimed={lostClaimed}
-                unclaimed={lostItems.length - lostClaimed}
-                loading={itemsLoading}
-              />
-
-              <Breakdown
-                label="Found items"
-                tone="found"
-                claimed={foundClaimed}
-                unclaimed={foundItems.length - foundClaimed}
-                loading={itemsLoading}
-              />
-            </div>
-
-            {/* CLAIM HISTORY */}
-            <section className="admin-panel admin-history" ref={historySectionRef}>
-              <div className="admin-panel-head">
-                <div>
-                  <p className="admin-eyebrow">RECORDS</p>
-                  <h2>Claim History</h2>
-                  <p>Items that owners confirmed they received.</p>
-                </div>
-
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-primary"
-                  onClick={exportClaimHistory}
-                  disabled={recordsLoading || filteredRecords.length === 0}
-                >
-                  <IonIcon icon={downloadOutline} />
-                  Export CSV
-                </button>
-              </div>
-
-              <div className="admin-toolbar">
-                <IonSearchbar
-                  className="findit-search admin-search"
-                  placeholder="Search item, owner or finder..."
-                  value={historySearch}
-                  debounce={150}
-                  onIonInput={(event) => setHistorySearch(event.detail.value || '')}
-                />
-
-                <IonSegment
-                  className="admin-segment"
-                  value={historyFilter}
-                  onIonChange={(event) =>
-                    setHistoryFilter(String(event.detail.value ?? 'All'))
-                  }
-                >
-                  <IonSegmentButton value="All">
-                    <IonLabel>All</IonLabel>
-                  </IonSegmentButton>
-                  <IonSegmentButton value="Lost">
-                    <IonLabel>Lost</IonLabel>
-                  </IonSegmentButton>
-                  <IonSegmentButton value="Found">
-                    <IonLabel>Found</IonLabel>
-                  </IonSegmentButton>
-                </IonSegment>
-              </div>
-
-              {recordsError && <div className="admin-message error">{recordsError}</div>}
-
-              <p className="admin-count">
-                {filteredRecords.length}{' '}
-                {filteredRecords.length === 1 ? 'record' : 'records'}
-              </p>
-
-              {recordsLoading ? (
-                <div className="admin-empty">Loading claim history...</div>
-              ) : filteredRecords.length === 0 ? (
-                <div className="admin-empty">
-                  {records.length === 0
-                    ? 'No items have been claimed yet.'
-                    : 'No records match your search or filter.'}
-                </div>
-              ) : (
-                <div className="admin-table-wrap">
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Date Claimed</th>
-                        <th scope="col">Item</th>
-                        <th scope="col">Type</th>
-                        <th scope="col">Owner (Received)</th>
-                        <th scope="col">Finder (Returned)</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {filteredRecords.map((record) => (
-                        <tr key={record.id}>
-                          <td className="nowrap">{formatDateTime(record.claimedAt)}</td>
-                          <td className="strong">{record.itemName}</td>
-                          <td>
-                            <span
-                              className={`admin-pill ${
-                                record.itemType === 'Lost' ? 'lost' : 'found'
-                              }`}
-                            >
-                              {record.itemType}
-                            </span>
-                          </td>
-                          <td>{record.ownerName}</td>
-                          <td>{record.finderName}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
+            {view === 'dashboard' && dashboardView}
+            {view === 'activity' && activityView}
+            {view === 'history' && historyView}
+            {view === 'users' && usersView}
           </main>
         </div>
       </IonContent>
