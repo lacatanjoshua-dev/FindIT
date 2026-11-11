@@ -55,5 +55,10 @@
     "vite": "^8.0.0",
     "vitest": "~4.0.18"
   },
-  "description": "An Ionic project"
+  "description": "An Ionic project",
+   "overrides": {
+    "jwks-rsa": {
+      "jose": "4.15.9"
+    }
+  }
 }
