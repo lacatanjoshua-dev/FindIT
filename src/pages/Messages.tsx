@@ -35,6 +35,7 @@ import {
 } from 'firebase/firestore';
 
 import { auth, db } from '../firebase';
+import FindItLogo from '../components/FindItLogo';
 import UserAvatar, { useUserProfile } from '../components/UserAvatar';
 import type { AppTab } from '../App';
 
@@ -293,7 +294,25 @@ const Messages: FC<MessagesProps> = ({ onTabChange, onOpenChat }) => {
       <IonHeader className="findit-header">
         <IonToolbar>
           <IonTitle>
-            <span className="brand-pin">●</span> Messages
+            <span
+              className="brand-title"
+              style={{
+                display: 'inline-flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: '10px',
+                verticalAlign: 'middle',
+              }}
+            >
+              <FindItLogo
+                size={28}
+                background="#ffffff"
+                foreground="#0f766e"
+                radius={32}
+                label=""
+              />
+              Messages
+            </span>
           </IonTitle>
         </IonToolbar>
       </IonHeader>

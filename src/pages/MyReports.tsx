@@ -56,6 +56,7 @@ import {
 } from 'firebase/firestore';
 
 import { auth, db } from '../firebase';
+import FindItLogo from '../components/FindItLogo';
 import { supabase } from '../supabase';
 import {
   ITEM_CATEGORIES,
@@ -448,7 +449,25 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
       <IonHeader className="findit-header">
         <IonToolbar>
           <IonTitle>
-            <span className="brand-pin">●</span> My Reports
+            <span
+              className="brand-title"
+              style={{
+                display: 'inline-flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: '10px',
+                verticalAlign: 'middle',
+              }}
+            >
+              <FindItLogo
+                size={28}
+                background="#ffffff"
+                foreground="#0f766e"
+                radius={32}
+                label=""
+              />
+              My Reports
+            </span>
           </IonTitle>
         </IonToolbar>
       </IonHeader>

@@ -41,6 +41,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebase';
+import FindItLogo from '../components/FindItLogo';
 import { startConversation } from '../services/messagingService';
 import { useUnreadMessagesCount } from '../services/useUnreadMessages';
 import { normalizeCategory } from '../constants/categories';
@@ -347,7 +348,25 @@ const Home: FC<HomeProps> = ({
       <IonHeader className="findit-header">
         <IonToolbar>
           <IonTitle>
-            <span className="brand-pin">●</span> FindIt
+            <span
+              className="brand-title"
+              style={{
+                display: 'inline-flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: '10px',
+                verticalAlign: 'middle',
+              }}
+            >
+              <FindItLogo
+                size={28}
+                background="#ffffff"
+                foreground="#0f766e"
+                radius={32}
+                label=""
+              />
+              FindIt
+            </span>
           </IonTitle>
 
           <IonButton
