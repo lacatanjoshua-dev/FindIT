@@ -29,7 +29,8 @@ export const ensureAuthenticatedRole = (user: User): Promise<boolean> => {
       });
 
       if (!response.ok) {
-        console.warn('Could not add the upload role:', response.status);
+        const details = await response.text().catch(() => '');
+        console.warn('Could not add the upload role:', response.status, details);
         return false;
       }
 

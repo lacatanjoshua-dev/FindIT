@@ -7,22 +7,71 @@
 // The Firebase service account is read from the FIREBASE_SERVICE_ACCOUNT
 // environment variable on Vercel. It is never sent to the browser.
 
-import { cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+let adminAuthPromise = null;
 
+// Loads firebase-admin only when needed, so a setup problem returns a clear
+// JSON error instead of crashing the whole function.
 const getAdminAuth = () => {
-  if (getApps().length === 0) {
-    const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!adminAuthPromise) {
+    adminAuthPromise = (async () => {
+      const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
 
-    if (!raw) {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT is not set on Vercel.');
-    }
+      if (!raw) {
+        throw new SetupError('FIREBASE_SERVICE_ACCOUNT is not set on Vercel.');
+      }
 
-    initializeApp({ credential: cert(JSON.parse(raw)) });
+      let serviceAccount;
+
+      try {
+        serviceAccount = JSON.parse(raw);
+      } catch {
+        // Never echo the value: it contains the private key.
+        throw new SetupError(
+          'FIREBASE_SERVICE_ACCOUNT is not valid JSON. Paste the whole serviceAccountKey.json file, from { to }.'
+        );
+      }
+
+      if (typeof serviceAccount.private_key === 'string') {
+        // Some copy-pastes turn real line breaks into "\n" text.
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+
+      let appModule;
+      let authModule;
+
+      try {
+        appModule = await import('firebase-admin/app');
+        authModule = await import('firebase-admin/auth');
+      } catch (error) {
+        throw new SetupError(
+          `Could not load firebase-admin: ${error && error.message ? error.message : error}`
+        );
+      }
+
+      const { cert, getApps, initializeApp } = appModule;
+
+      try {
+        if (getApps().length === 0) {
+          initializeApp({ credential: cert(serviceAccount) });
+        }
+      } catch (error) {
+        throw new SetupError(
+          `Firebase Admin could not start: ${error && error.code ? error.code : 'check the service account'}`
+        );
+      }
+
+      return authModule.getAuth();
+    })().catch((error) => {
+      // Allow a retry on the next request.
+      adminAuthPromise = null;
+      throw error;
+    });
   }
 
-  return getAuth();
+  return adminAuthPromise;
 };
+
+class SetupError extends Error {}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -40,10 +89,12 @@ export default async function handler(req, res) {
   let adminAuth;
 
   try {
-    adminAuth = getAdminAuth();
+    adminAuth = await getAdminAuth();
   } catch (error) {
     console.error('Firebase Admin setup error:', error);
-    return res.status(500).json({ error: 'Server is not configured.' });
+    return res.status(500).json({
+      error: error instanceof SetupError ? error.message : 'Server is not configured.',
+    });
   }
 
   // 1. Check that the login token is real and belongs to this user.
@@ -51,7 +102,8 @@ export default async function handler(req, res) {
 
   try {
     decoded = await adminAuth.verifyIdToken(match[1]);
-  } catch {
+  } catch (error) {
+    console.error('Token check failed:', error && error.code);
     return res.status(401).json({ error: 'Invalid or expired login token.' });
   }
 
