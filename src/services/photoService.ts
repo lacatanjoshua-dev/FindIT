@@ -3,6 +3,7 @@ import type { User } from 'firebase/auth';
 
 import { auth, db } from '../firebase';
 import { supabase } from '../supabase';
+import { ensureAuthenticatedRole } from './claimService';
 
 export const PROFILE_BUCKET = 'profile-photos';
 export const CHAT_BUCKET = 'chat-images';
@@ -129,7 +130,9 @@ export const uploadChatImage = async (
     throw new Error('Please log in to send an image.');
   }
 
-  // Refresh the token so the latest custom claims are included.
+  // Add the upload role if this account does not have it yet,
+  // then refresh the token so the latest custom claims are included.
+  await ensureAuthenticatedRole(user);
   await user.getIdToken(true);
   const tokenResult = await user.getIdTokenResult();
 

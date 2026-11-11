@@ -13,6 +13,7 @@ import {
 
 import { auth, db } from './firebase';
 import { ensureMyPublicProfile } from './services/photoService';
+import { ensureAuthenticatedRole } from './services/claimService';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -84,6 +85,10 @@ const App: FC = () => {
       // Make sure this user has a public profile (name and photo only)
       // so other users can see it in chats.
       void ensureMyPublicProfile(user);
+
+      // Give new accounts the upload role automatically
+      // (replaces running "node set-user-claims.cjs" by hand).
+      void ensureAuthenticatedRole(user);
 
       setCheckingRole(true);
 

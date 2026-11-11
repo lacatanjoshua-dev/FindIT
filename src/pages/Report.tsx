@@ -38,6 +38,7 @@ import {
 
 import { auth, db } from '../firebase';
 import { supabase } from '../supabase';
+import { ensureAuthenticatedRole } from '../services/claimService';
 import type { AppTab } from '../App';
 import { ITEM_CATEGORIES, DEFAULT_CATEGORY } from '../constants/categories';
 import type { ItemCategory } from '../constants/categories';
@@ -140,6 +141,11 @@ const Report: FC<ReportProps> = ({ onTabChange }) => {
     let firebaseRole: unknown;
 
     try {
+      // Add the upload role first if this is a new account.
+      if (selectedPhoto) {
+        await ensureAuthenticatedRole(user);
+      }
+
       await user.getIdToken(true);
 
       const tokenResult = await user.getIdTokenResult();

@@ -56,6 +56,7 @@ import { auth, db } from '../firebase';
 import FindItLogo from '../components/FindItLogo';
 import { supabase } from '../supabase';
 import { useUnreadMessagesCount } from '../services/useUnreadMessages';
+import { ensureAuthenticatedRole } from '../services/claimService';
 
 import './Home.css';
 import './Profile.css';
@@ -257,7 +258,9 @@ const Profile: FC<ProfileProps> = ({ onLogout, onTabChange }) => {
     let uploadedPath = '';
 
     try {
-      // Refresh the token so the latest custom claims are included.
+      // Add the upload role if needed, then refresh the token
+      // so the latest custom claims are included.
+      await ensureAuthenticatedRole(user);
       await user.getIdToken(true);
       const tokenResult = await user.getIdTokenResult();
 
