@@ -10,28 +10,55 @@ ion-content.profile-content {
   background: #ffffff;
   padding-bottom: 16px;
   border-bottom: 1px solid #e3ecea;
-  margin-bottom: 12px;
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 4px 14px rgba(24, 59, 57, 0.05);
+  margin-bottom: 14px;
 }
 
 .fb-cover {
-  height: 150px;
-  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 55%, #5eead4 100%);
+  position: relative;
+  height: 140px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #0f766e 0%, #0b5d57 100%);
+}
+
+/* Soft circles on the cover */
+.fb-cover::before,
+.fb-cover::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.fb-cover::before {
+  width: 220px;
+  height: 220px;
+  top: -90px;
+  right: -60px;
+}
+
+.fb-cover::after {
+  width: 140px;
+  height: 140px;
+  bottom: -70px;
+  left: 30%;
 }
 
 .fb-avatar-row {
   padding: 0 16px;
-  margin-top: -62px;
+  margin-top: -58px;
 }
 
 .fb-avatar-wrap {
   position: relative;
-  width: 124px;
-  height: 124px;
+  width: 116px;
+  height: 116px;
 }
 
 .fb-avatar {
-  width: 124px;
-  height: 124px;
+  width: 116px;
+  height: 116px;
   box-sizing: border-box;
   border-radius: 50%;
   overflow: hidden;
@@ -41,9 +68,9 @@ ion-content.profile-content {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 44px;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  font-size: 42px;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
 
 .fb-avatar img {
@@ -55,21 +82,21 @@ ion-content.profile-content {
 
 .fb-camera-button {
   position: absolute;
-  right: 0;
-  bottom: 4px;
-  width: 38px;
-  height: 38px;
+  right: 2px;
+  bottom: 6px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 3px solid #ffffff;
-  background: #e6f7f3;
-  color: #0f766e;
+  background: #0f766e;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  font-size: 19px;
+  font-size: 17px;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .fb-camera-button:disabled {
@@ -87,12 +114,12 @@ ion-content.profile-content {
 }
 
 .fb-identity {
-  padding: 12px 16px 0;
+  padding: 10px 16px 0;
 }
 
 .fb-name {
   margin: 0;
-  font-size: 24px;
+  font-size: 23px;
   font-weight: 800;
   line-height: 1.2;
   color: #183b39;
@@ -100,9 +127,69 @@ ion-content.profile-content {
 }
 
 .fb-subtitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin: 4px 0 0;
   font-size: 14px;
   color: #718582;
+}
+
+.fb-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #d1fae5;
+  color: #047857;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.fb-verified ion-icon {
+  font-size: 14px;
+}
+
+/* Reports / Active / Claimed under the name */
+.fb-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.fb-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 6px;
+  border: 1px solid #e3ece9;
+  border-radius: 14px;
+  background: #f6faf9;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fb-stat:active {
+  background: #e6f7f3;
+}
+
+.fb-stat strong {
+  color: #0f766e;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.fb-stat span {
+  margin-top: 2px;
+  color: #718582;
+  font-size: 11.5px;
+  font-weight: 600;
 }
 
 .fb-actions {
@@ -114,6 +201,8 @@ ion-content.profile-content {
 .fb-actions ion-button {
   flex: 1;
   margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 /* Cards below the header */

@@ -31,6 +31,9 @@ import {
   createOutline,
   cameraOutline,
   saveOutline,
+  chevronForward,
+  checkmarkCircle,
+  alertCircle,
 } from 'ionicons/icons';
 
 import {
@@ -39,7 +42,15 @@ import {
   updateProfile,
   type User,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+  setDoc,
+  where,
+} from 'firebase/firestore';
 
 import { auth, db } from '../firebase';
 import { supabase } from '../supabase';
@@ -86,6 +97,53 @@ const Profile: FC<ProfileProps> = ({ onLogout, onTabChange }) => {
   const quickFileInputRef = useRef<HTMLInputElement>(null);
 
   const unreadMessages = useUnreadMessagesCount();
+
+  // Counts of the user's own reports, shown under their name.
+  const [reportStats, setReportStats] = useState({
+    total: 0,
+    active: 0,
+    claimed: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  const userId = user?.uid;
+
+  useEffect(() => {
+    if (!userId) {
+      setReportStats({ total: 0, active: 0, claimed: 0 });
+      setStatsLoading(false);
+      return;
+    }
+
+    setStatsLoading(true);
+
+    const unsubscribe = onSnapshot(
+      query(collection(db, 'items'), where('userId', '==', userId)),
+      (snapshot) => {
+        let active = 0;
+        let claimed = 0;
+
+        snapshot.forEach((itemDoc) => {
+          const status = String(itemDoc.data().status ?? 'Active');
+
+          if (status === 'Active') {
+            active += 1;
+          } else {
+            claimed += 1;
+          }
+        });
+
+        setReportStats({ total: snapshot.size, active, claimed });
+        setStatsLoading(false);
+      },
+      (error) => {
+        console.error('Profile report stats error:', error);
+        setStatsLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [userId]);
 
   // Load Firebase user and their saved Supabase photo path.
   useEffect(() => {
@@ -503,7 +561,41 @@ const Profile: FC<ProfileProps> = ({ onLogout, onTabChange }) => {
 
               <div className="fb-identity">
                 <h2 className="fb-name">{currentName}</h2>
-                <p className="fb-subtitle">FindIt Student</p>
+                <p className="fb-subtitle">
+                  FindIt Student
+                  {user.emailVerified && (
+                    <span className="fb-verified" title="Email verified">
+                      <IonIcon icon={checkmarkCircle} /> Verified
+                    </span>
+                  )}
+                </p>
+
+                <div className="fb-stats">
+                  <button
+                    type="button"
+                    className="fb-stat"
+                    onClick={() => onTabChange('myreports')}
+                  >
+                    <strong>{statsLoading ? '–' : reportStats.total}</strong>
+                    <span>Reports</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="fb-stat"
+                    onClick={() => onTabChange('myreports')}
+                  >
+                    <strong>{statsLoading ? '–' : reportStats.active}</strong>
+                    <span>Active</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="fb-stat"
+                    onClick={() => onTabChange('myreports')}
+                  >
+                    <strong>{statsLoading ? '–' : reportStats.claimed}</strong>
+                    <span>Claimed</span>
+                  </button>
+                </div>
 
                 {!editing && (
                   <div className="fb-actions">
@@ -525,6 +617,66 @@ const Profile: FC<ProfileProps> = ({ onLogout, onTabChange }) => {
             </section>
 
             <div className="fb-body">
+              {!editing && (
+                <section className="profile-card profile-shortcuts">
+                  <button
+                    type="button"
+                    className="shortcut-row"
+                    onClick={() => onTabChange('myreports')}
+                  >
+                    <span className="shortcut-icon">
+                      <IonIcon icon={clipboardOutline} />
+                    </span>
+                    <span className="shortcut-text">
+                      <strong>My Reports</strong>
+                      <small>Edit or delete the items you reported</small>
+                    </span>
+                    <IonIcon icon={chevronForward} className="shortcut-chevron" />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="shortcut-row"
+                    onClick={() => onTabChange('messages')}
+                  >
+                    <span className="shortcut-icon">
+                      <IonIcon icon={chatbubblesOutline} />
+                    </span>
+                    <span className="shortcut-text">
+                      <strong>Messages</strong>
+                      <small>
+                        {unreadMessages > 0
+                          ? `${unreadMessages} unread ${
+                              unreadMessages === 1 ? 'chat' : 'chats'
+                            }`
+                          : 'Chat with owners and finders'}
+                      </small>
+                    </span>
+                    {unreadMessages > 0 && (
+                      <span className="shortcut-count">
+                        {unreadMessages > 9 ? '9+' : unreadMessages}
+                      </span>
+                    )}
+                    <IonIcon icon={chevronForward} className="shortcut-chevron" />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="shortcut-row"
+                    onClick={() => onTabChange('report')}
+                  >
+                    <span className="shortcut-icon">
+                      <IonIcon icon={addCircleOutline} />
+                    </span>
+                    <span className="shortcut-text">
+                      <strong>Report an item</strong>
+                      <small>Lost or found something? Post it</small>
+                    </span>
+                    <IonIcon icon={chevronForward} className="shortcut-chevron" />
+                  </button>
+                </section>
+              )}
+
               {editing ? (
                 <section className="profile-card profile-information">
                   <h2>Edit Profile</h2>
@@ -627,44 +779,39 @@ const Profile: FC<ProfileProps> = ({ onLogout, onTabChange }) => {
                 </section>
               )}
 
-              {!editing && (
-                <section className="profile-card profile-information">
-                  <h2>Account Status</h2>
-
-                  <div className="profile-info-row">
-                    <div className="profile-info-icon">
-                      <IonIcon icon={mailOutline} />
-                    </div>
-                    <div className="profile-info-text">
-                      <span>Email Verification</span>
-                      <strong>
-                        {user.emailVerified ? 'Verified' : 'Not verified'}
-                      </strong>
+              {/* Only shown while the email is not verified yet.
+                  Verified users see a "Verified" tag under their name. */}
+              {!editing && !user.emailVerified && (
+                <section className="profile-card profile-verify-card">
+                  <div className="profile-verify-top">
+                    <IonIcon icon={alertCircle} />
+                    <div>
+                      <strong>Verify your email</strong>
+                      <p>
+                        We'll send a link to {user.email || 'your email'}.
+                        Check your inbox and spam folder.
+                      </p>
                     </div>
                   </div>
 
-                  {!user.emailVerified && (
-                    <>
-                      <IonButton
-                        expand="block"
-                        fill="outline"
-                        onClick={() => void handleSendVerification()}
-                        disabled={sendingVerification}
-                      >
-                        {sendingVerification
-                          ? 'Sending...'
-                          : 'Send verification email'}
-                      </IonButton>
+                  <IonButton
+                    expand="block"
+                    className="profile-verify-button"
+                    onClick={() => void handleSendVerification()}
+                    disabled={sendingVerification}
+                  >
+                    <IonIcon icon={mailOutline} slot="start" />
+                    {sendingVerification ? 'Sending...' : 'Send verification email'}
+                  </IonButton>
 
-                      <IonButton
-                        expand="block"
-                        fill="clear"
-                        onClick={() => void handleRefreshVerification()}
-                      >
-                        I have verified my email
-                      </IonButton>
-                    </>
-                  )}
+                  <IonButton
+                    expand="block"
+                    fill="clear"
+                    className="profile-verify-check"
+                    onClick={() => void handleRefreshVerification()}
+                  >
+                    I have verified my email
+                  </IonButton>
                 </section>
               )}
 
