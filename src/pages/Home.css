@@ -921,3 +921,7 @@ ion-tab-bar.findit-tabbar ion-tab-button.tab-selected ion-label {
   font-weight: 700;
   z-index: 10;
 }
+
+ion-content::part(scroll) {
+  scrollbar-width: none;
+}

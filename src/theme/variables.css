@@ -8,3 +8,10 @@ http://ionicframework.com/docs/theming/ */
   --findit-text: #183B39;
   --findit-muted: #718582;
 }
+
+ion-content {
+  --offset-bottom: 0px;
+}
+ion-content::part(scroll)::-webkit-scrollbar {
+  display: none;
+}
