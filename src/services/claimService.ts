@@ -1,4 +1,12 @@
 import type { User } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+
+// On the website, "/api/set-claim" is on the same server.
+// In the Android app the page runs on https://localhost, so it must call
+// the Vercel website directly.
+const API_BASE = Capacitor.isNativePlatform()
+  ? import.meta.env.VITE_API_BASE_URL || 'https://find-it-five-gamma.vercel.app'
+  : '';
 
 // Makes sure the user's login token has { role: "authenticated" },
 // which Supabase Storage needs for photo uploads.
@@ -23,7 +31,7 @@ export const ensureAuthenticatedRole = (user: User): Promise<boolean> => {
         return true;
       }
 
-      const response = await fetch('/api/set-claim', {
+      const response = await fetch(`${API_BASE}/api/set-claim`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${tokenResult.token}` },
       });
