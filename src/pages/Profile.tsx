@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FC, ChangeEvent } from 'react';
 
 import {
+  IonBadge,
   IonButton,
   IonContent,
   IonHeader,
@@ -42,6 +43,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 import { auth, db } from '../firebase';
 import { supabase } from '../supabase';
+import { useUnreadMessagesCount } from '../services/useUnreadMessages';
 
 import './Home.css';
 import './Profile.css';
@@ -82,6 +84,8 @@ const Profile: FC<ProfileProps> = ({ onLogout, onTabChange }) => {
   const [toastColor, setToastColor] = useState('success');
 
   const quickFileInputRef = useRef<HTMLInputElement>(null);
+
+  const unreadMessages = useUnreadMessagesCount();
 
   // Load Firebase user and their saved Supabase photo path.
   useEffect(() => {
@@ -715,6 +719,11 @@ const Profile: FC<ProfileProps> = ({ onLogout, onTabChange }) => {
         <IonTabButton tab="messages" onClick={() => onTabChange('messages')}>
           <IonIcon icon={chatbubblesOutline} />
           <IonLabel>Messages</IonLabel>
+          {unreadMessages > 0 && (
+            <IonBadge className="tab-unread-badge">
+              {unreadMessages > 9 ? '9+' : unreadMessages}
+            </IonBadge>
+          )}
         </IonTabButton>
 
         <IonTabButton

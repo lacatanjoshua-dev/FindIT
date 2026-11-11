@@ -42,6 +42,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { startConversation } from '../services/messagingService';
+import { useUnreadMessagesCount } from '../services/useUnreadMessages';
 import { normalizeCategory } from '../constants/categories';
 import type { ItemCategory } from '../constants/categories';
 import './Home.css';
@@ -175,6 +176,8 @@ const Home: FC<HomeProps> = ({
   const [messagingItemId, setMessagingItemId] = useState<string | null>(null);
 
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const unreadMessages = useUnreadMessagesCount();
 
   const currentUser = auth.currentUser;
 
@@ -638,6 +641,11 @@ const Home: FC<HomeProps> = ({
         >
           <IonIcon icon={chatbubblesOutline} />
           <IonLabel>Messages</IonLabel>
+          {unreadMessages > 0 && (
+            <IonBadge className="tab-unread-badge">
+              {unreadMessages > 9 ? '9+' : unreadMessages}
+            </IonBadge>
+          )}
         </IonTabButton>
 
         <IonTabButton tab="profile" onClick={onOpenProfile}>

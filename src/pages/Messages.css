@@ -1,0 +1,214 @@
+/* ========================================
+   MESSAGES LIST
+   (uses the hero, filter, skeleton and empty-state styles from Home.css)
+======================================== */
+
+.messages-filter {
+  padding-top: 6px;
+}
+
+.convo-list {
+  margin: 6px 12px 12px;
+  overflow: hidden;
+  border: 1px solid #e3ece9;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(24, 59, 57, 0.05);
+}
+
+/* ---------- One conversation ---------- */
+
+.convo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid #edf3f1;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.convo-row:last-child {
+  border-bottom: 0;
+}
+
+.convo-row:hover {
+  background: #f6faf9;
+}
+
+.convo-row:active {
+  background: #eef6f4;
+}
+
+.convo-row:focus-visible {
+  outline: 3px solid #10b981;
+  outline-offset: -3px;
+}
+
+.convo-row-unread {
+  background: #f2fbf8;
+}
+
+/* Avatar with a small Found / Lost dot */
+.convo-avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.convo-type-dot {
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+  width: 14px;
+  height: 14px;
+  border: 2.5px solid #ffffff;
+  border-radius: 50%;
+}
+
+.convo-type-dot.is-found {
+  background: #059669;
+}
+
+.convo-type-dot.is-lost {
+  background: #dc2626;
+}
+
+.convo-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.convo-top,
+.convo-bottom,
+.convo-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.convo-top {
+  justify-content: space-between;
+}
+
+.convo-name {
+  overflow: hidden;
+  color: #183b39;
+  font-size: 15.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.convo-time {
+  flex-shrink: 0;
+  color: #8aa09c;
+  font-size: 12px;
+}
+
+.convo-item-tag {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.convo-item-tag.is-found {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.convo-item-tag.is-lost {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.convo-item-name {
+  overflow: hidden;
+  color: #4f6561;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.convo-preview {
+  flex: 1;
+  overflow: hidden;
+  color: #6b7f7c;
+  font-size: 13.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.convo-preview-empty {
+  font-style: italic;
+  color: #9fb1ad;
+}
+
+.convo-unread-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0f766e;
+}
+
+/* Unread: bold name, dark preview, teal time */
+.convo-row-unread .convo-name {
+  font-weight: 800;
+}
+
+.convo-row-unread .convo-preview {
+  color: #183b39;
+  font-weight: 700;
+}
+
+.convo-row-unread .convo-time {
+  color: #0f766e;
+  font-weight: 700;
+}
+
+/* ---------- Loading skeleton ---------- */
+
+.convo-skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
+.convo-skeleton-avatar {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+}
+
+.convo-skeleton-line {
+  width: 100%;
+  height: 11px;
+}
+
+.convo-skeleton-line.short {
+  width: 40%;
+}
+
+.convo-skeleton-line.medium {
+  width: 70%;
+}
+
+@media (min-width: 700px) {
+  .convo-list {
+    margin: 6px 16px 12px;
+  }
+}

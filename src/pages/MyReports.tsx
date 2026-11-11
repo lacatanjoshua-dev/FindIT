@@ -68,6 +68,7 @@ import {
   normalizeCategory,
 } from '../constants/categories';
 import type { ItemCategory } from '../constants/categories';
+import { useUnreadMessagesCount } from '../services/useUnreadMessages';
 
 type MyReportsTab =
   | 'home'
@@ -174,6 +175,8 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
   const [formError, setFormError] = useState('');
   const [pageError, setPageError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  const unreadMessages = useUnreadMessagesCount();
 
   useEffect(() => {
     let unsubscribeReports: (() => void) | undefined;
@@ -583,6 +586,11 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
         <IonTabButton tab="messages" onClick={() => onTabChange('messages')}>
           <IonIcon icon={chatbubblesOutline} />
           <IonLabel>Messages</IonLabel>
+          {unreadMessages > 0 && (
+            <IonBadge className="tab-unread-badge">
+              {unreadMessages > 9 ? '9+' : unreadMessages}
+            </IonBadge>
+          )}
         </IonTabButton>
 
         <IonTabButton tab="profile" onClick={() => onTabChange('profile')}>

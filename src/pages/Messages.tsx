@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FC } from 'react';
 
 import {
@@ -6,14 +6,13 @@ import {
   IonContent,
   IonHeader,
   IonIcon,
-  IonItem,
   IonLabel,
-  IonList,
   IonPage,
-  IonSpinner,
+  IonSearchbar,
+  IonSegment,
+  IonSegmentButton,
   IonTabBar,
   IonTabButton,
-  IonText,
   IonTitle,
   IonToolbar,
 } from '@ionic/react';
@@ -40,6 +39,7 @@ import UserAvatar, { useUserProfile } from '../components/UserAvatar';
 import type { AppTab } from '../App';
 
 import './Home.css';
+import './Messages.css';
 
 type MessagesProps = {
   onTabChange: (tab: AppTab) => void;
@@ -67,6 +67,7 @@ type Conversation = {
 const getTime = (value?: TimestampLike) =>
   value?.toDate?.()?.getTime?.() ?? 0;
 
+// "9:24 PM" for today, "Yesterday", "Mon" this week, otherwise "Nov 3".
 const formatTime = (value?: TimestampLike) => {
   const date = value?.toDate?.();
 
@@ -75,12 +76,29 @@ const formatTime = (value?: TimestampLike) => {
   }
 
   const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round(
+    (startOfToday.getTime() - startOfDate.getTime()) / 86400000
+  );
 
-  return isToday
-    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  if (diffDays <= 0) {
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+
+  if (diffDays === 1) return 'Yesterday';
+
+  if (diffDays < 7) {
+    return date.toLocaleDateString([], { weekday: 'short' });
+  }
+
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 };
+
+const isUnread = (conversation: Conversation, me: string) =>
+  Boolean(conversation.lastSenderId) &&
+  conversation.lastSenderId !== me &&
+  getTime(conversation.lastMessageAt) > getTime(conversation.readAt[me]);
 
 type ConversationRowProps = {
   conversation: Conversation;
@@ -88,7 +106,7 @@ type ConversationRowProps = {
   onOpen: (conversationId: string) => void;
 };
 
-// One row in the list, with the other user's profile picture.
+// One conversation in the list, with the other user's profile picture.
 const ConversationRow: FC<ConversationRowProps> = ({
   conversation,
   me,
@@ -103,49 +121,64 @@ const ConversationRow: FC<ConversationRowProps> = ({
   const profile = useUserProfile(otherUid);
   const name = profile.name || storedName || 'FindIt user';
 
-  const unread =
-    Boolean(conversation.lastSenderId) &&
-    conversation.lastSenderId !== me &&
-    getTime(conversation.lastMessageAt) > getTime(conversation.readAt[me]);
+  const unread = isUnread(conversation, me);
+  const sentByMe = conversation.lastSenderId === me;
+
+  const preview = conversation.lastMessage
+    ? `${sentByMe ? 'You: ' : ''}${conversation.lastMessage}`
+    : 'No messages yet. Say hello!';
 
   return (
-    <IonItem
-      button
-      detail
-      lines="full"
+    <button
+      type="button"
+      className={`convo-row ${unread ? 'convo-row-unread' : ''}`}
       onClick={() => onOpen(conversation.id)}
+      aria-label={`Open chat with ${name} about ${conversation.itemName}${
+        unread ? ', unread' : ''
+      }`}
     >
-      <div slot="start" style={{ marginInlineEnd: 12 }}>
-        <UserAvatar name={name} photoUrl={profile.photoUrl} size={48} />
+      <div className="convo-avatar">
+        <UserAvatar name={name} photoUrl={profile.photoUrl} size={52} />
+        <span
+          className={`convo-type-dot ${
+            conversation.itemType === 'Found' ? 'is-found' : 'is-lost'
+          }`}
+          aria-hidden="true"
+        />
       </div>
 
-      <IonLabel>
-        <h2 style={{ fontWeight: unread ? 800 : 600 }}>{name}</h2>
-        <p>
-          <strong>{conversation.itemName}</strong> ({conversation.itemType})
-        </p>
-        <p
-          style={{
-            fontWeight: unread ? 700 : 400,
-            color: unread ? '#183B39' : undefined,
-          }}
-        >
-          {conversation.lastMessage || 'No messages yet.'}
-        </p>
-      </IonLabel>
+      <div className="convo-body">
+        <div className="convo-top">
+          <span className="convo-name">{name}</span>
+          <span className="convo-time">
+            {formatTime(conversation.lastMessageAt)}
+          </span>
+        </div>
 
-      <div slot="end" style={{ textAlign: 'right' }}>
-        <IonText color="medium">
-          <small>{formatTime(conversation.lastMessageAt)}</small>
-        </IonText>
+        <div className="convo-item">
+          <span
+            className={`convo-item-tag ${
+              conversation.itemType === 'Found' ? 'is-found' : 'is-lost'
+            }`}
+          >
+            {conversation.itemType}
+          </span>
+          <span className="convo-item-name">{conversation.itemName}</span>
+        </div>
 
-        {unread && (
-          <div>
-            <IonBadge color="success">New</IonBadge>
-          </div>
-        )}
+        <div className="convo-bottom">
+          <span
+            className={`convo-preview ${
+              conversation.lastMessage ? '' : 'convo-preview-empty'
+            }`}
+          >
+            {preview}
+          </span>
+
+          {unread && <span className="convo-unread-dot" aria-hidden="true" />}
+        </div>
       </div>
-    </IonItem>
+    </button>
   );
 };
 
@@ -153,6 +186,8 @@ const Messages: FC<MessagesProps> = ({ onTabChange, onOpenChat }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [search, setSearch] = useState('');
 
   const me = auth.currentUser?.uid ?? '';
 
@@ -222,6 +257,37 @@ const Messages: FC<MessagesProps> = ({ onTabChange, onOpenChat }) => {
     };
   }, []);
 
+  const unreadCount = useMemo(
+    () => conversations.filter((conversation) => isUnread(conversation, me)).length,
+    [conversations, me]
+  );
+
+  // Filter by All / Unread, then by the search text
+  // (the other person's name, the item name, or the last message).
+  const visibleConversations = useMemo(() => {
+    const term = search.trim().toLowerCase();
+
+    return conversations.filter((conversation) => {
+      if (filter === 'unread' && !isUnread(conversation, me)) {
+        return false;
+      }
+
+      if (!term) {
+        return true;
+      }
+
+      const otherName =
+        me === conversation.reporterId
+          ? conversation.otherName
+          : conversation.reporterName;
+
+      return [otherName, conversation.itemName, conversation.lastMessage]
+        .join(' ')
+        .toLowerCase()
+        .includes(term);
+    });
+  }, [conversations, filter, me, search]);
+
   return (
     <IonPage>
       <IonHeader className="findit-header">
@@ -233,13 +299,42 @@ const Messages: FC<MessagesProps> = ({ onTabChange, onOpenChat }) => {
       </IonHeader>
 
       <IonContent fullscreen className="findit-content">
-        <section className="welcome-section">
+        <section className="welcome-section messages-hero">
           <p className="eyebrow">CHAT WITH OTHER USERS</p>
           <h1>Your Messages</h1>
           <p className="welcome-description">
             Talk to the owner or the finder of an item to arrange the handover.
           </p>
         </section>
+
+        <div className="search-section">
+          <IonSearchbar
+            className="findit-search"
+            placeholder="Search people or items..."
+            value={search}
+            debounce={150}
+            onIonInput={(event) => setSearch(String(event.detail.value ?? ''))}
+          />
+        </div>
+
+        <div className="filter-section messages-filter">
+          <IonSegment
+            value={filter}
+            onIonChange={(event) =>
+              setFilter(event.detail.value === 'unread' ? 'unread' : 'all')
+            }
+          >
+            <IonSegmentButton value="all">
+              <IonLabel>All</IonLabel>
+            </IonSegmentButton>
+
+            <IonSegmentButton value="unread">
+              <IonLabel>
+                Unread{unreadCount > 0 ? ` (${unreadCount})` : ''}
+              </IonLabel>
+            </IonSegmentButton>
+          </IonSegment>
+        </div>
 
         {error && (
           <p className="findit-message error-message" role="alert">
@@ -248,21 +343,46 @@ const Messages: FC<MessagesProps> = ({ onTabChange, onOpenChat }) => {
         )}
 
         {loading ? (
-          <div className="empty-state">
-            <IonSpinner name="crescent" />
-            <p>Loading messages...</p>
+          <div className="convo-list" aria-busy="true" aria-label="Loading messages">
+            {[0, 1, 2, 3].map((key) => (
+              <div className="convo-row convo-skeleton" key={key}>
+                <div className="skeleton-block convo-skeleton-avatar" />
+                <div className="convo-body">
+                  <div className="skeleton-block convo-skeleton-line short" />
+                  <div className="skeleton-block convo-skeleton-line" />
+                  <div className="skeleton-block convo-skeleton-line medium" />
+                </div>
+              </div>
+            ))}
           </div>
-        ) : conversations.length === 0 ? (
+        ) : visibleConversations.length === 0 ? (
           <div className="empty-state">
-            <IonIcon icon={chatbubbleEllipsesOutline} />
-            <h3>No conversations yet</h3>
-            <p>
-              Open an item on Home and tap Message to start a conversation.
-            </p>
+            <div className="empty-state-icon">
+              <IonIcon icon={chatbubbleEllipsesOutline} />
+            </div>
+
+            {search.trim() && conversations.length > 0 ? (
+              <>
+                <h3>No matching chats</h3>
+                <p>Try another name or item.</p>
+              </>
+            ) : filter === 'unread' && conversations.length > 0 ? (
+              <>
+                <h3>You're all caught up</h3>
+                <p>No unread messages right now.</p>
+              </>
+            ) : (
+              <>
+                <h3>No conversations yet</h3>
+                <p>
+                  Open an item on Home and tap Message to start a conversation.
+                </p>
+              </>
+            )}
           </div>
         ) : (
-          <IonList>
-            {conversations.map((conversation) => (
+          <div className="convo-list">
+            {visibleConversations.map((conversation) => (
               <ConversationRow
                 key={conversation.id}
                 conversation={conversation}
@@ -270,7 +390,7 @@ const Messages: FC<MessagesProps> = ({ onTabChange, onOpenChat }) => {
                 onOpen={onOpenChat}
               />
             ))}
-          </IonList>
+          </div>
         )}
 
         <div className="bottom-space" />
@@ -299,6 +419,11 @@ const Messages: FC<MessagesProps> = ({ onTabChange, onOpenChat }) => {
         >
           <IonIcon icon={chatbubblesOutline} />
           <IonLabel>Messages</IonLabel>
+          {unreadCount > 0 && (
+            <IonBadge className="tab-unread-badge">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </IonBadge>
+          )}
         </IonTabButton>
 
         <IonTabButton tab="profile" onClick={() => onTabChange('profile')}>
