@@ -1,24 +1,31 @@
 import { useState } from 'react';
+import type { FC, FormEvent } from 'react';
+
 import {
   IonButton,
   IonContent,
   IonIcon,
   IonInput,
-  IonItem,
-  IonLabel,
   IonPage,
-  IonText,
+  IonSpinner,
 } from '@ionic/react';
+
 import {
-  locationOutline,
-  mailOutline,
-  lockClosedOutline,
+  alertCircleOutline,
+  arrowForward,
+  checkmarkCircleOutline,
+  eyeOffOutline,
   eyeOutline,
+  location,
+  lockClosedOutline,
+  mailOutline,
 } from 'ionicons/icons';
+
 import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
+
 import { auth } from '../firebase';
 import './Auth.css';
 
@@ -27,10 +34,14 @@ type LoginProps = {
   onCreateAccount: () => void;
 };
 
-const Login: React.FC<LoginProps> = ({
-  onLogin,
-  onCreateAccount,
-}) => {
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const getErrorCode = (error: unknown) =>
+  typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code: unknown }).code)
+    : '';
+
+const Login: FC<LoginProps> = ({ onLogin, onCreateAccount }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -47,7 +58,7 @@ const Login: React.FC<LoginProps> = ({
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!EMAIL_PATTERN.test(email.trim())) {
       setError('Please enter a valid email address.');
       return;
     }
@@ -55,20 +66,10 @@ const Login: React.FC<LoginProps> = ({
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(
-        auth,
-        email.trim(),
-        password
-      );
-
+      await signInWithEmailAndPassword(auth, email.trim(), password);
       onLogin();
-    } catch (error: unknown) {
-      const code =
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error
-          ? String(error.code)
-          : '';
+    } catch (loginError: unknown) {
+      const code = getErrorCode(loginError);
 
       if (
         code === 'auth/invalid-credential' ||
@@ -82,7 +83,7 @@ const Login: React.FC<LoginProps> = ({
         setError('Too many attempts. Please try again later.');
       } else {
         setError('Login failed. Please check your connection and try again.');
-        console.error('Firebase login error:', error);
+        console.error('Firebase login error:', loginError);
       }
     } finally {
       setLoading(false);
@@ -99,7 +100,7 @@ const Login: React.FC<LoginProps> = ({
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!EMAIL_PATTERN.test(email.trim())) {
       setError('Please enter a valid email address.');
       return;
     }
@@ -113,13 +114,8 @@ const Login: React.FC<LoginProps> = ({
       setInfo(
         'If an account exists for that email, a password reset link has been sent. Please check your inbox and spam folder.'
       );
-    } catch (error: unknown) {
-      const code =
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error
-          ? String(error.code)
-          : '';
+    } catch (resetError: unknown) {
+      const code = getErrorCode(resetError);
 
       if (code === 'auth/invalid-email') {
         setError('Please enter a valid email address.');
@@ -132,107 +128,127 @@ const Login: React.FC<LoginProps> = ({
         setInfo(
           'If an account exists for that email, a password reset link has been sent. Please check your inbox and spam folder.'
         );
-        console.error('Password reset error:', error);
+        console.error('Password reset error:', resetError);
       }
     } finally {
       setLoading(false);
     }
   };
 
+  // Pressing Enter in any field logs in.
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+
+    if (!loading) {
+      void handleLogin();
+    }
+  };
+
   return (
     <IonPage>
       <IonContent fullscreen className="auth-content">
-        <div className="auth-wrapper">
-          <div className="auth-brand">
-            <div className="auth-logo">
-              <IonIcon icon={locationOutline} />
-            </div>
-            <h1>FindIt</h1>
-            <p>Lost and Found Management System</p>
+        <div className="auth-hero">
+          <div className="auth-logo">
+            <IonIcon icon={location} />
           </div>
+          <h1>FindIt</h1>
+          <p>University Lost &amp; Found</p>
+        </div>
 
-          <section className="auth-card">
+        <div className="auth-wrapper">
+          <form className="auth-card" onSubmit={handleSubmit} noValidate>
             <p className="auth-eyebrow">WELCOME BACK</p>
-            <h2>Login to your account</h2>
+            <h2>Log in to your account</h2>
             <p className="auth-subtitle">
               Find your lost items and help others find theirs.
             </p>
 
             <div className="auth-field">
-              <IonLabel>Email Address</IonLabel>
-              <IonItem className="auth-input" lines="none">
-                <IonIcon icon={mailOutline} slot="start" />
+              <span className="auth-label">Email address</span>
+              <div className="auth-input-wrap">
+                <IonIcon icon={mailOutline} className="auth-input-icon" />
                 <IonInput
+                  className="auth-input"
+                  aria-label="Email address"
                   type="email"
+                  inputmode="email"
                   placeholder="you@university.edu"
                   autocomplete="email"
                   value={email}
-                  onIonInput={(e) =>
-                    setEmail(e.detail.value ?? '')
-                  }
+                  disabled={loading}
+                  onIonInput={(e) => setEmail(String(e.detail.value ?? ''))}
                 />
-              </IonItem>
+              </div>
             </div>
 
             <div className="auth-field">
-              <IonLabel>Password</IonLabel>
-              <IonItem className="auth-input" lines="none">
-                <IonIcon icon={lockClosedOutline} slot="start" />
+              <div className="auth-label-row">
+                <span className="auth-label">Password</span>
+                <button
+                  type="button"
+                  className="auth-link"
+                  onClick={() => void handleForgotPassword()}
+                  disabled={loading}
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              <div className="auth-input-wrap">
+                <IonIcon icon={lockClosedOutline} className="auth-input-icon" />
                 <IonInput
+                  className="auth-input"
+                  aria-label="Password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   autocomplete="current-password"
                   value={password}
-                  onIonInput={(e) =>
-                    setPassword(e.detail.value ?? '')
-                  }
+                  disabled={loading}
+                  onIonInput={(e) => setPassword(String(e.detail.value ?? ''))}
                 />
-                <IonButton
-                  fill="clear"
-                  slot="end"
-                  className="password-toggle"
-                  aria-label="Toggle password visibility"
-                  onClick={() => setShowPassword(!showPassword)}
+                <button
+                  type="button"
+                  className="auth-eye"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowPassword((value) => !value)}
                 >
-                  <IonIcon icon={eyeOutline} />
-                </IonButton>
-              </IonItem>
-            </div>
-
-            <div style={{ textAlign: 'right' }}>
-              <IonButton
-                fill="clear"
-                size="small"
-                onClick={() => void handleForgotPassword()}
-                disabled={loading}
-              >
-                Forgot password?
-              </IonButton>
+                  <IonIcon icon={showPassword ? eyeOffOutline : eyeOutline} />
+                </button>
+              </div>
             </div>
 
             {error && (
-              <IonText color="danger">
-                <p className="auth-error">{error}</p>
-              </IonText>
+              <div className="auth-alert auth-alert-error" role="alert">
+                <IonIcon icon={alertCircleOutline} />
+                <span>{error}</span>
+              </div>
             )}
 
             {info && (
-              <IonText color="success">
-                <p className="auth-error">{info}</p>
-              </IonText>
+              <div className="auth-alert auth-alert-info" role="status">
+                <IonIcon icon={checkmarkCircleOutline} />
+                <span>{info}</span>
+              </div>
             )}
 
             <IonButton
+              type="submit"
               expand="block"
               className="auth-primary"
-              onClick={handleLogin}
               disabled={loading}
             >
-              {loading ? 'Please wait...' : 'Login'}
+              {loading ? (
+                <IonSpinner name="crescent" />
+              ) : (
+                <>
+                  Log In
+                  <IonIcon icon={arrowForward} slot="end" />
+                </>
+              )}
             </IonButton>
 
             <div className="auth-divider">
-              <span>NEW TO FINDIT?</span>
+              <span>New to FindIt?</span>
             </div>
 
             <IonButton
@@ -242,13 +258,13 @@ const Login: React.FC<LoginProps> = ({
               onClick={onCreateAccount}
               disabled={loading}
             >
-              Create Account
+              Create an account
             </IonButton>
+          </form>
 
-            <p className="auth-footer">
-              University Lost &amp; Found
-            </p>
-          </section>
+          <p className="auth-footer">
+            Lost something? Found something? Let's help it find its way home.
+          </p>
         </div>
       </IonContent>
     </IonPage>

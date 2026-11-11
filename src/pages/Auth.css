@@ -1,230 +1,418 @@
+/* ========================================
+   LOGIN AND REGISTER
+======================================== */
 
 .auth-content {
-  --background: #FAFAF8;
+  --background: #f6f8f7;
 }
 
-.auth-wrapper {
-  width: 100%;
-  max-width: 460px;
-  margin: 0 auto;
-  padding: 28px 20px 36px;
-}
+/* ---------- Teal top area with the logo ---------- */
 
-.auth-brand {
+.auth-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 44px) 24px 72px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #0f766e 0%, #0b5d57 100%);
+  color: #ffffff;
   text-align: center;
-  padding: 10px 0 24px;
+}
+
+/* Soft circles in the background */
+.auth-hero::before,
+.auth-hero::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.auth-hero::before {
+  width: 260px;
+  height: 260px;
+  top: -110px;
+  right: -80px;
+}
+
+.auth-hero::after {
+  width: 180px;
+  height: 180px;
+  bottom: -90px;
+  left: -50px;
+}
+
+.auth-hero-compact {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 28px);
+  padding-bottom: 64px;
 }
 
 .auth-logo {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 66px;
-  height: 66px;
-  margin: 0 auto 12px;
+  width: 68px;
+  height: 68px;
+  margin-bottom: 12px;
   border-radius: 22px;
-  color: #ffffff;
-  background: #0F766E;
-  box-shadow: 0 8px 20px rgba(15, 118, 110, 0.2);
+  background: #ffffff;
+  color: #0f766e;
+  font-size: 34px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 
-.auth-logo ion-icon {
-  font-size: 35px;
+.auth-hero-compact .auth-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  font-size: 28px;
 }
 
-.auth-brand h1 {
+.auth-hero h1 {
+  position: relative;
+  z-index: 1;
   margin: 0;
-  color: #0F766E;
   font-size: 30px;
   font-weight: 800;
-  letter-spacing: -0.7px;
+  letter-spacing: -0.5px;
 }
 
-.auth-brand p {
-  margin: 7px 0 0;
-  color: #718582;
-  font-size: 13px;
+.auth-hero p {
+  position: relative;
+  z-index: 1;
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+.auth-back {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  left: 14px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* ---------- White card that overlaps the teal area ---------- */
+
+.auth-wrapper {
+  position: relative;
+  z-index: 2;
+  max-width: 440px;
+  margin: -44px auto 0;
+  padding: 0 16px 32px;
 }
 
 .auth-card {
   padding: 24px 20px;
-  border: 1px solid #E5EFEB;
-  border-radius: 22px;
+  border: 1px solid #e3ece9;
+  border-radius: 24px;
   background: #ffffff;
-  box-shadow: 0 8px 30px rgba(24, 59, 57, 0.06);
+  box-shadow: 0 10px 30px rgba(24, 59, 57, 0.1);
 }
 
 .auth-eyebrow {
-  margin: 0 0 8px;
-  color: #10B981;
-  font-size: 10px;
+  margin: 0;
+  color: #10b981;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 1.5px;
+  letter-spacing: 1.4px;
 }
 
 .auth-card h2 {
-  margin: 0;
-  color: #183B39;
-  font-size: 24px;
+  margin: 6px 0 4px;
+  color: #183b39;
+  font-size: 22px;
   font-weight: 800;
-  line-height: 1.25;
 }
 
 .auth-subtitle {
-  margin: 9px 0 24px;
-  color: #718582;
-  font-size: 13px;
-  line-height: 1.6;
+  margin: 0 0 18px;
+  color: #6b7f7c;
+  font-size: 13.5px;
+  line-height: 1.5;
 }
+
+/* ---------- Fields ---------- */
 
 .auth-field {
-  margin-bottom: 17px;
+  margin-bottom: 14px;
 }
 
-.auth-field > ion-label {
+.auth-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.auth-label {
   display: block;
-  margin: 0 0 8px 3px;
-  color: #183B39;
-  font-size: 12px;
+  margin-bottom: 6px;
+  color: #4f6561;
+  font-size: 12.5px;
   font-weight: 700;
 }
 
-.auth-input {
-  --background: #FAFAF8;
-  --border-radius: 12px;
-  --padding-start: 12px;
-  --inner-padding-end: 8px;
-  --min-height: 50px;
-  border: 1px solid #E1EBE7;
-  border-radius: 12px;
+.auth-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 50px;
+  padding: 0 6px 0 14px;
+  border: 1.5px solid #e3ece9;
+  border-radius: 14px;
+  background: #f6f8f7;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.auth-input ion-icon {
-  color: #0F766E;
+.auth-input-wrap:focus-within {
+  border-color: #0f766e;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.1);
+}
+
+.auth-input-wrap.is-valid {
+  border-color: #10b981;
+}
+
+.auth-input-wrap.is-invalid {
+  border-color: #f87171;
+}
+
+.auth-input-icon {
+  flex-shrink: 0;
+  color: #8aa09c;
   font-size: 19px;
-  margin-right: 9px;
 }
 
-.auth-input ion-input {
-  --color: #183B39;
-  --placeholder-color: #91A6A2;
+.auth-input-wrap:focus-within .auth-input-icon {
+  color: #0f766e;
+}
+
+.auth-input {
+  flex: 1;
+  --background: transparent;
+  --color: #183b39;
+  --placeholder-color: #9fb1ad;
+  --placeholder-opacity: 1;
+  --padding-start: 8px;
+  --padding-end: 4px;
+  --highlight-height: 0;
+  min-height: 46px !important;
+  font-size: 15px;
+}
+
+.auth-eye {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #6b7f7c;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.auth-eye:active {
+  background: #e6f7f3;
+}
+
+.auth-link {
+  margin-bottom: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #0f766e;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-link:disabled {
+  opacity: 0.6;
+}
+
+/* ---------- Password strength and match hints ---------- */
+
+.auth-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.auth-strength-bars {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.auth-strength-bars span {
+  height: 5px;
+  border-radius: 999px;
+  background: #e3ece9;
+}
+
+.auth-strength small {
+  min-width: 92px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.strength-1 .auth-strength-bars span:nth-child(-n + 1) { background: #ef4444; }
+.strength-2 .auth-strength-bars span:nth-child(-n + 2) { background: #f59e0b; }
+.strength-3 .auth-strength-bars span:nth-child(-n + 3) { background: #10b981; }
+.strength-4 .auth-strength-bars span:nth-child(-n + 4) { background: #059669; }
+
+.strength-1 small { color: #dc2626; }
+.strength-2 small { color: #d97706; }
+.strength-3 small,
+.strength-4 small { color: #047857; }
+
+.auth-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.auth-hint ion-icon {
+  font-size: 15px;
+}
+
+.auth-hint-ok {
+  color: #047857;
+}
+
+.auth-hint-bad {
+  color: #dc2626;
+}
+
+/* ---------- Messages ---------- */
+
+.auth-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
   font-size: 13px;
+  line-height: 1.45;
 }
 
-.auth-input:focus-within {
-  border-color: #10B981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.09);
+.auth-alert ion-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 18px;
 }
 
-.password-toggle {
-  --color: #718582;
-  margin: 0;
+.auth-alert-error {
+  background: #fef2f2;
+  color: #b91c1c;
 }
+
+.auth-alert-info {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+/* ---------- Buttons ---------- */
 
 .auth-primary {
-  margin: 22px 0 0;
-  --background: #0F766E;
-  --background-hover: #0B625B;
-  --background-activated: #0B625B;
+  margin: 6px 0 0;
+  height: 52px;
+  --background: #0f766e;
+  --background-activated: #0b5d57;
+  --background-hover: #0b5d57;
   --color: #ffffff;
-  --border-radius: 12px;
-  --box-shadow: 0 5px 12px rgba(15, 118, 110, 0.18);
-  height: 48px;
-  font-size: 14px;
-  font-weight: 750;
+  --border-radius: 14px;
+  --box-shadow: 0 6px 16px rgba(15, 118, 110, 0.28);
+  font-size: 16px;
+  font-weight: 800;
   text-transform: none;
+  letter-spacing: 0;
+}
+
+.auth-primary ion-spinner {
+  color: #ffffff;
 }
 
 .auth-secondary {
   margin: 0;
-  --color: #0F766E;
-  --border-color: #B8DDD3;
-  --border-radius: 12px;
-  height: 46px;
-  font-size: 13px;
+  height: 50px;
+  --color: #0f766e;
+  --border-color: #b8ddd3;
+  --border-width: 1.5px;
+  --border-radius: 14px;
+  --background-hover: #f0faf7;
+  font-size: 15px;
   font-weight: 700;
   text-transform: none;
+  letter-spacing: 0;
 }
 
 .auth-divider {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 23px 0;
-  color: #91A6A2;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
+  margin: 20px 0 14px;
+  color: #8aa09c;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .auth-divider::before,
 .auth-divider::after {
-  content: "";
+  content: '';
   flex: 1;
   height: 1px;
-  background: #E5EFEB;
-}
-
-.auth-error {
-  margin: 8px 2px;
-  font-size: 12px;
-}
-
-.auth-footer {
-  margin: 24px 0 0;
-  color: #91A6A2;
-  text-align: center;
-  font-size: 11px;
+  background: #e3ece9;
 }
 
 .auth-switch {
-  margin: 22px 0 0;
-  color: #718582;
+  margin: 18px 0 0;
+  color: #6b7f7c;
+  font-size: 14px;
   text-align: center;
-  font-size: 12px;
 }
 
 .auth-switch button {
   padding: 0;
-  border: none;
-  background: transparent;
-  color: #0F766E;
+  border: 0;
+  background: none;
+  color: #0f766e;
   font: inherit;
   font-weight: 800;
   cursor: pointer;
 }
 
-.register-wrapper {
-  padding-top: 12px;
-}
-
-.register-wrapper .auth-brand {
-  padding-bottom: 18px;
-}
-
-.register-wrapper .auth-card {
-  padding-top: 22px;
-  padding-bottom: 22px;
-}
-
-.register-wrapper .auth-subtitle {
-  margin-bottom: 20px;
-}
-
-.register-wrapper .auth-field {
-  margin-bottom: 13px;
-}
-
-.register-wrapper .auth-primary {
-  margin-top: 12px;
-}
-
-@media (min-width: 700px) {
-  .auth-wrapper {
-    padding-top: 36px;
-  }
-
-  .register-wrapper {
-    padding-top: 20px;
-  }
+.auth-footer {
+  margin: 18px 12px 0;
+  color: #8aa09c;
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: center;
 }
