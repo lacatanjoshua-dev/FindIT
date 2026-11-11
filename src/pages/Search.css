@@ -1,0 +1,143 @@
+/* ========================================
+   SEARCH PAGE
+   (cards, tags and empty states come from Home.css)
+======================================== */
+
+/* Teal band under the header that holds the search bar */
+.sr-top {
+  padding: 14px 12px 18px;
+  border-radius: 0 0 24px 24px;
+  background: linear-gradient(160deg, #0f766e 0%, #0b5d57 100%);
+}
+
+.sr-searchbar {
+  padding: 0;
+  --box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+}
+
+.sr-filters {
+  padding: 14px 16px 4px;
+}
+
+.sr-segment {
+  --background: #e9f2ef;
+  padding: 4px;
+  border-radius: 999px;
+}
+
+.sr-segment ion-segment-button {
+  --color: #58736e;
+  --color-checked: #ffffff;
+  --background-checked: #0f766e;
+  --indicator-color: transparent;
+  --border-radius: 999px;
+  min-height: 36px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.sr-filter-label {
+  margin: 14px 0 8px;
+  color: #4f6561;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+/* Chips scroll sideways on phones */
+.sr-chips {
+  display: flex;
+  gap: 8px;
+  margin: 0 -16px;
+  padding: 0 16px 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sr-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.sr-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #e3ece9;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #4f6561;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sr-chip span {
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #f1f6f5;
+  color: #4f6561;
+  font-size: 11px;
+  text-align: center;
+}
+
+.sr-chip.active {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.sr-chip.active span {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.sr-heading-right {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.sr-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #0f766e;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sr-clear ion-icon {
+  font-size: 15px;
+}
+
+@media (min-width: 700px) {
+  .sr-top {
+    margin: 16px 16px 0;
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .sr-chips {
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+}

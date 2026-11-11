@@ -2,17 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FC } from 'react';
 
 import {
-  IonBadge,
   IonButton,
-  IonButtons,
   IonContent,
   IonHeader,
   IonIcon,
+  IonLabel,
   IonPage,
   IonSearchbar,
-  IonSelect,
-  IonSelectOption,
-  IonSpinner,
+  IonSegment,
+  IonSegmentButton,
   IonTitle,
   IonToolbar,
 } from '@ionic/react';
@@ -20,6 +18,7 @@ import {
 import {
   arrowBackOutline,
   chatbubbleEllipsesOutline,
+  closeCircle,
   locationOutline,
   searchOutline,
   timeOutline,
@@ -35,6 +34,7 @@ import { startConversation } from '../services/messagingService';
 import type { AppTab } from '../App';
 
 import './Home.css';
+import './Search.css';
 
 type SearchProps = {
   onTabChange: (tab: AppTab) => void;
@@ -57,11 +57,35 @@ type SearchItem = {
   imageUrl: string;
 };
 
-// Shows the item's photo, or the emoji if there is no photo.
-const ItemPhoto: FC<{ src: string; type: 'Lost' | 'Found' }> = ({
-  src,
-  type,
-}) => {
+type StatusFilter = 'All' | 'Unclaimed' | 'Claimed';
+
+// "Today", "Yesterday", "3 days ago" or "Nov 3".
+const formatRelativeDate = (value: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+
+  if (!match) {
+    return value || 'No date';
+  }
+
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round((today.getTime() - date.getTime()) / 86400000);
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`;
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() === today.getFullYear() ? undefined : 'numeric',
+  });
+};
+
+// Shows the item's photo, or an emoji if there is no photo.
+const ItemPhoto: FC<{ src: string; type: 'Lost' | 'Found' }> = ({ src, type }) => {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -69,7 +93,7 @@ const ItemPhoto: FC<{ src: string; type: 'Lost' | 'Found' }> = ({
   }, [src]);
 
   if (!src || failed) {
-    return <span>{type === 'Lost' ? '🔎' : '🎒'}</span>;
+    return <span className="item-photo-fallback">{type === 'Lost' ? '🔎' : '🎒'}</span>;
   }
 
   return (
@@ -96,8 +120,9 @@ const Search: FC<SearchProps> = ({ onTabChange, onOpenChat }) => {
   const [notice, setNotice] = useState('');
 
   const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('All');
+  const [typeFilter, setTypeFilter] = useState<'All' | 'Lost' | 'Found'>('All');
+  const [categoryFilter, setCategoryFilter] = useState<'All' | ItemCategory>('All');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
 
   const [messagingItemId, setMessagingItemId] = useState<string | null>(null);
 
@@ -150,16 +175,13 @@ const Search: FC<SearchProps> = ({ onTabChange, onOpenChat }) => {
               id: itemDoc.id,
               name: String(data.name ?? 'Unnamed item'),
               type:
-                String(data.type ?? 'Lost').toLowerCase() === 'found'
-                  ? 'Found'
-                  : 'Lost',
+                String(data.type ?? 'Lost').toLowerCase() === 'found' ? 'Found' : 'Lost',
               category: normalizeCategory(data.category),
               location: String(data.location ?? 'Unknown location'),
               date: String(data.date ?? ''),
               description: String(data.description ?? ''),
               userId: typeof data.userId === 'string' ? data.userId : undefined,
-              reporterName:
-                typeof data.reporterName === 'string' ? data.reporterName : '',
+              reporterName: typeof data.reporterName === 'string' ? data.reporterName : '',
               status:
                 data.status === 'Claimed' || data.status === 'Resolved'
                   ? data.status
@@ -188,21 +210,21 @@ const Search: FC<SearchProps> = ({ onTabChange, onOpenChat }) => {
     };
   }, []);
 
+  // How many items each category has (shown on the chips).
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    items.forEach((item) => counts.set(item.category, (counts.get(item.category) ?? 0) + 1));
+    return counts;
+  }, [items]);
+
   const results = useMemo(() => {
     const text = search.trim().toLowerCase();
 
     return items.filter((item) => {
-      if (categoryFilter !== 'All' && item.category !== categoryFilter) {
-        return false;
-      }
-
-      if (statusFilter === 'Unclaimed' && item.status !== 'Active') {
-        return false;
-      }
-
-      if (statusFilter === 'Claimed' && item.status === 'Active') {
-        return false;
-      }
+      if (typeFilter !== 'All' && item.type !== typeFilter) return false;
+      if (categoryFilter !== 'All' && item.category !== categoryFilter) return false;
+      if (statusFilter === 'Unclaimed' && item.status !== 'Active') return false;
+      if (statusFilter === 'Claimed' && item.status === 'Active') return false;
 
       if (
         text &&
@@ -218,15 +240,17 @@ const Search: FC<SearchProps> = ({ onTabChange, onOpenChat }) => {
 
       return true;
     });
-  }, [items, search, categoryFilter, statusFilter]);
+  }, [items, search, typeFilter, categoryFilter, statusFilter]);
 
-  const activeFilterCount = [
-    categoryFilter !== 'All',
-    statusFilter !== 'All',
-  ].filter(Boolean).length;
+  const hasFilters =
+    search.trim() !== '' ||
+    typeFilter !== 'All' ||
+    categoryFilter !== 'All' ||
+    statusFilter !== 'All';
 
   const clearFilters = () => {
     setSearch('');
+    setTypeFilter('All');
     setCategoryFilter('All');
     setStatusFilter('All');
   };
@@ -277,27 +301,35 @@ const Search: FC<SearchProps> = ({ onTabChange, onOpenChat }) => {
     }
   };
 
+  const statusOptions: { value: StatusFilter; label: string }[] = [
+    { value: 'All', label: 'Any status' },
+    { value: 'Unclaimed', label: 'Not yet claimed' },
+    { value: 'Claimed', label: 'Claimed' },
+  ];
+
   return (
     <IonPage>
       <IonHeader className="findit-header">
         <IonToolbar>
-          <IonButtons slot="start">
-            <IonButton aria-label="Back" onClick={() => onTabChange('home')}>
-              <IonIcon icon={arrowBackOutline} />
-            </IonButton>
-          </IonButtons>
+          <IonButton
+            slot="start"
+            fill="clear"
+            aria-label="Back to Home"
+            onClick={() => onTabChange('home')}
+          >
+            <IonIcon icon={arrowBackOutline} />
+          </IonButton>
 
-          <IonTitle>
-            <span className="brand-pin">●</span> Search
-          </IonTitle>
+          <IonTitle>Search</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent fullscreen className="findit-content">
-        <div className="search-section">
+        {/* Search bar on a teal band, like the hero on Home */}
+        <div className="sr-top">
           <IonSearchbar
             ref={searchbarRef}
-            className="findit-search"
+            className="findit-search sr-searchbar"
             placeholder="Search items, locations, categories..."
             value={search}
             onIonInput={(event) => setSearch(event.detail.value ?? '')}
@@ -305,43 +337,67 @@ const Search: FC<SearchProps> = ({ onTabChange, onOpenChat }) => {
           />
         </div>
 
-        <div style={{ padding: '8px 16px' }}>
-          <IonSelect
-            label="Category"
-            labelPlacement="stacked"
-            interface="popover"
-            value={categoryFilter}
-            onIonChange={(event) =>
-              setCategoryFilter(String(event.detail.value ?? 'All'))
-            }
+        <div className="sr-filters">
+          <IonSegment
+            className="sr-segment"
+            value={typeFilter}
+            onIonChange={(event) => {
+              const value = String(event.detail.value ?? 'All');
+              setTypeFilter(value === 'Lost' || value === 'Found' ? value : 'All');
+            }}
           >
-            <IonSelectOption value="All">All categories</IonSelectOption>
+            <IonSegmentButton value="All">
+              <IonLabel>All</IonLabel>
+            </IonSegmentButton>
+            <IonSegmentButton value="Lost">
+              <IonLabel>Lost</IonLabel>
+            </IonSegmentButton>
+            <IonSegmentButton value="Found">
+              <IonLabel>Found</IonLabel>
+            </IonSegmentButton>
+          </IonSegment>
+
+          <p className="sr-filter-label">Category</p>
+          <div className="sr-chips" role="group" aria-label="Filter by category">
+            <button
+              type="button"
+              className={`sr-chip ${categoryFilter === 'All' ? 'active' : ''}`}
+              aria-pressed={categoryFilter === 'All'}
+              onClick={() => setCategoryFilter('All')}
+            >
+              All
+            </button>
+
             {ITEM_CATEGORIES.map((category) => (
-              <IonSelectOption key={category} value={category}>
+              <button
+                key={category}
+                type="button"
+                className={`sr-chip ${categoryFilter === category ? 'active' : ''}`}
+                aria-pressed={categoryFilter === category}
+                onClick={() => setCategoryFilter(category)}
+              >
                 {category}
-              </IonSelectOption>
+                {(categoryCounts.get(category) ?? 0) > 0 && (
+                  <span>{categoryCounts.get(category)}</span>
+                )}
+              </button>
             ))}
-          </IonSelect>
+          </div>
 
-          <IonSelect
-            label="Status"
-            labelPlacement="stacked"
-            interface="popover"
-            value={statusFilter}
-            onIonChange={(event) =>
-              setStatusFilter(String(event.detail.value ?? 'All'))
-            }
-          >
-            <IonSelectOption value="All">All</IonSelectOption>
-            <IonSelectOption value="Unclaimed">Not yet claimed</IonSelectOption>
-            <IonSelectOption value="Claimed">Claimed</IonSelectOption>
-          </IonSelect>
-
-          {(activeFilterCount > 0 || search.trim() !== '') && (
-            <IonButton size="small" fill="clear" onClick={clearFilters}>
-              Clear filters
-            </IonButton>
-          )}
+          <p className="sr-filter-label">Status</p>
+          <div className="sr-chips" role="group" aria-label="Filter by status">
+            {statusOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`sr-chip ${statusFilter === option.value ? 'active' : ''}`}
+                aria-pressed={statusFilter === option.value}
+                onClick={() => setStatusFilter(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {notice && (
@@ -358,105 +414,130 @@ const Search: FC<SearchProps> = ({ onTabChange, onOpenChat }) => {
 
         <div className="section-heading">
           <div>
-            <h2>Search Results</h2>
-            <p>Items that match your search and filters</p>
+            <h2>{hasFilters ? 'Results' : 'All Items'}</h2>
+            <p>
+              {search.trim()
+                ? `Matching "${search.trim()}"`
+                : hasFilters
+                  ? 'Items that match your filters'
+                  : 'Type above or pick a filter'}
+            </p>
           </div>
 
-          <span className="item-count">
-            {results.length} {results.length === 1 ? 'result' : 'results'}
-          </span>
+          <div className="sr-heading-right">
+            {!loading && (
+              <span className="item-count">
+                {results.length} {results.length === 1 ? 'item' : 'items'}
+              </span>
+            )}
+
+            {hasFilters && (
+              <button type="button" className="sr-clear" onClick={clearFilters}>
+                <IonIcon icon={closeCircle} />
+                Clear
+              </button>
+            )}
+          </div>
         </div>
 
         {loading ? (
-          <div className="empty-state">
-            <IonSpinner name="crescent" />
-            <p>Loading items...</p>
+          <div className="items-list" aria-busy="true" aria-label="Loading items">
+            {[0, 1, 2].map((key) => (
+              <div className="item-card skeleton-card" key={key}>
+                <div className="skeleton-block skeleton-thumb" />
+                <div className="skeleton-lines">
+                  <div className="skeleton-block skeleton-line short" />
+                  <div className="skeleton-block skeleton-line" />
+                  <div className="skeleton-block skeleton-line medium" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : results.length === 0 ? (
           <div className="empty-state">
-            <IonIcon icon={searchOutline} />
+            <div className="empty-state-icon">
+              <IonIcon icon={searchOutline} />
+            </div>
             <h3>No items found</h3>
             <p>Try a different keyword or remove some filters.</p>
 
-            {(activeFilterCount > 0 || search.trim() !== '') && (
-              <IonButton onClick={clearFilters}>Clear filters</IonButton>
+            {hasFilters && (
+              <IonButton className="empty-state-button" onClick={clearFilters}>
+                Clear filters
+              </IonButton>
             )}
           </div>
         ) : (
           <div className="items-list">
-            {results.map((item) => (
-              <article className="item-card" key={item.id}>
-                <div
-                  className="item-emoji"
-                  style={{
-                    overflow: 'hidden',
-                    padding: item.imageUrl ? 0 : undefined,
-                  }}
-                >
-                  <ItemPhoto src={item.imageUrl} type={item.type} />
-                </div>
+            {results.map((item) => {
+              const isMine = item.userId === currentUser?.uid;
 
-                <div className="item-info">
-                  <IonBadge
-                    className={
-                      item.type === 'Lost' ? 'status-lost' : 'status-found'
-                    }
-                  >
-                    {item.type}
-                  </IonBadge>
-
-                  <IonBadge
-                    color={
-                      item.status === 'Active'
-                        ? 'primary'
-                        : item.status === 'Claimed'
-                          ? 'warning'
-                          : 'success'
-                    }
-                  >
-                    {item.status}
-                  </IonBadge>
-
-                  <IonBadge color="light">{item.category}</IonBadge>
-
-                  <h3>{item.name}</h3>
-                  <p>{item.description}</p>
-
-                  <div className="item-meta">
-                    <span>
-                      <IonIcon icon={locationOutline} />
-                      {item.location}
-                    </span>
-
-                    <span>
-                      <IonIcon icon={timeOutline} />
-                      {item.date}
+              return (
+                <article className="item-card" key={item.id}>
+                  <div className="item-emoji item-thumb">
+                    <ItemPhoto src={item.imageUrl} type={item.type} />
+                    <span
+                      className={`type-tag ${
+                        item.type === 'Lost' ? 'type-tag-lost' : 'type-tag-found'
+                      }`}
+                    >
+                      {item.type}
                     </span>
                   </div>
 
-                  {canMessage(item) && (
-                    <div className="bookmark-action">
-                      <IonButton
-                        size="small"
-                        fill="outline"
-                        disabled={messagingItemId === item.id}
-                        onClick={() => void handleMessage(item)}
-                      >
-                        <IonIcon
-                          icon={chatbubbleEllipsesOutline}
-                          slot="start"
-                        />
-                        {messagingItemId === item.id ? 'Opening...' : 'Message'}
-                      </IonButton>
-                    </div>
-                  )}
+                  <div className="item-info item-body">
+                    <div className="item-topline">
+                      <span className="item-category">{item.category}</span>
 
-                  {item.userId === currentUser?.uid && (
-                    <small className="item-details-hint">Your report</small>
-                  )}
-                </div>
-              </article>
-            ))}
+                      {item.status !== 'Active' && (
+                        <span
+                          className={`item-status-tag ${
+                            item.status === 'Claimed'
+                              ? 'item-status-claimed'
+                              : 'item-status-resolved'
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3>{item.name}</h3>
+
+                    {item.description && <p className="item-desc">{item.description}</p>}
+
+                    <div className="item-meta">
+                      <span>
+                        <IonIcon icon={locationOutline} />
+                        {item.location}
+                      </span>
+                      <span>
+                        <IonIcon icon={timeOutline} />
+                        {formatRelativeDate(item.date)}
+                      </span>
+                    </div>
+
+                    {(isMine || canMessage(item)) && (
+                      <div className="item-card-footer">
+                        {isMine ? <span className="item-mine-tag">Your report</span> : <span />}
+
+                        {canMessage(item) && (
+                          <IonButton
+                            size="small"
+                            className="item-message-btn"
+                            disabled={messagingItemId === item.id}
+                            onClick={() => void handleMessage(item)}
+                          >
+                            <IonIcon icon={chatbubbleEllipsesOutline} slot="start" />
+                            {messagingItemId === item.id ? 'Opening...' : 'Message'}
+                          </IonButton>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
 

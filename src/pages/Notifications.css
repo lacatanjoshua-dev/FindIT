@@ -1,186 +1,218 @@
+/* ========================================
+   NOTIFICATIONS PAGE
+   (hero, filter, skeleton and empty state come from Home.css)
+======================================== */
 
-.notifications-content {
-  --background: #f4f8f7;
+.nt-hero h1 {
+  font-size: 26px;
 }
 
-.notifications-page {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 32px;
-}
-
-.notifications-heading {
-  display: flex;
+.nt-mark-all {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 24px;
+  gap: 6px;
+  min-height: 40px;
+  margin-top: 14px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f766e;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
-.notifications-eyebrow {
-  margin: 0 0 8px;
-  color: #0f766e;
+.nt-mark-all ion-icon {
+  font-size: 18px;
+}
+
+.nt-mark-all:disabled {
+  opacity: 0.7;
+}
+
+.nt-filter {
+  padding-top: 14px;
+}
+
+.nt-group {
+  margin: 10px 12px 0;
+}
+
+.nt-group-label {
+  margin: 12px 4px 8px;
+  color: #4f6561;
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 1.5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
 }
 
-.notifications-heading h1 {
-  margin: 0;
-  color: #183b39;
-  font-size: 30px;
-  font-weight: 800;
-}
-
-.notifications-heading > div > p:last-child {
-  color: #718582;
-  line-height: 1.6;
-}
-
-.notifications-count {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px;
-  margin-bottom: 18px;
-  background: #ffffff;
-  border: 1px solid #e0ebe8;
-  border-radius: 12px;
-  color: #718582;
-  font-size: 14px;
-}
-
-.notifications-count ion-icon {
-  color: #0f766e;
-  font-size: 20px;
-}
-
-.notifications-state {
+.nt-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 35px 18px;
-  background: #ffffff;
-  border: 1px solid #e0ebe8;
-  border-radius: 14px;
-  color: #718582;
-  text-align: center;
-}
-
-.notifications-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 20px;
-  background: #ffffff;
-  border: 1px solid #e0ebe8;
-  border-radius: 16px;
-  text-align: center;
-}
-
-.notifications-empty > ion-icon {
-  color: #0f766e;
-  font-size: 44px;
-}
-
-.notifications-empty h2 {
-  margin: 16px 0 8px;
-  color: #183b39;
-  font-size: 21px;
-  font-weight: 800;
-}
-
-.notifications-empty p {
-  max-width: 420px;
+  gap: 8px;
   margin: 0;
-  color: #718582;
-  line-height: 1.6;
-}
-
-.notifications-list {
   padding: 0;
-  background: transparent;
+  list-style: none;
 }
 
-.notification-item {
-  --background: #ffffff;
-  --padding-start: 18px;
-  --inner-padding-end: 12px;
-  --border-radius: 14px;
-
-  margin-bottom: 12px;
-  border: 1px solid #e0ebe8;
-  border-radius: 14px;
-  box-shadow: 0 4px 14px rgba(24, 59, 57, 0.04);
+/* Loading list sits like a group */
+div.nt-list {
+  margin: 14px 12px 0;
 }
 
-.notification-item.unread {
-  border-left: 4px solid #10b981;
-}
+/* ---------- One notification ---------- */
 
-.notification-icon {
+.nt-card {
+  position: relative;
   display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #e3ece9;
+  border-radius: 18px;
+  background: #ffffff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(24, 59, 57, 0.04);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nt-card.is-unread {
+  border-color: #b8ddd3;
+  background: #f2fbf8;
+}
+
+.nt-card.is-read {
+  cursor: default;
+}
+
+.nt-card:focus-visible {
+  outline: 3px solid #10b981;
+  outline-offset: 2px;
+}
+
+.nt-icon {
+  display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   width: 42px;
   height: 42px;
-  margin-right: 14px;
-  background: #e6f7f3;
-  border-radius: 12px;
-  color: #0f766e;
-  font-size: 22px;
+  border-radius: 13px;
+  font-size: 21px;
 }
 
-.notification-item h2 {
-  margin: 8px 0;
-  color: #183b39;
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.notification-item p {
-  color: #718582;
-  line-height: 1.6;
-  white-space: normal;
-}
-
-.notification-item-footer {
+.nt-body {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 10px 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
 
-.notification-unread-label {
-  color: #059669;
-  font-size: 12px;
+.nt-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nt-top strong {
+  color: #183b39;
+  font-size: 15px;
   font-weight: 800;
 }
 
-@media (max-width: 600px) {
-  .notifications-page {
-    padding: 20px 16px;
-  }
+.nt-card.is-read .nt-top strong {
+  font-weight: 700;
+}
 
-  .notifications-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+.nt-top small {
+  flex-shrink: 0;
+  color: #6b7f7c;
+  font-size: 12px;
+}
 
-  .notifications-heading h1 {
-    font-size: 25px;
-  }
+.nt-card.is-unread .nt-top small {
+  color: #0f766e;
+  font-weight: 700;
+}
 
-  .notification-item {
-    --padding-start: 12px;
-    --inner-padding-end: 6px;
-  }
+.nt-message {
+  color: #4f6561;
+  font-size: 13.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
 
-  .notification-icon {
-    width: 36px;
-    height: 36px;
-    margin-right: 10px;
-    font-size: 19px;
+.nt-status {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.nt-dot {
+  position: absolute;
+  top: 16px;
+  right: 14px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #0f766e;
+}
+
+.nt-card.is-unread .nt-top {
+  padding-right: 16px;
+}
+
+/* ---------- Colors per status ---------- */
+
+.nt-icon.tone-active,
+.nt-status.tone-active { background: #e6f7f3; color: #0f766e; }
+
+.nt-icon.tone-claimed,
+.nt-status.tone-claimed { background: #fef3c7; color: #b45309; }
+
+.nt-icon.tone-resolved,
+.nt-status.tone-resolved { background: #dbeafe; color: #1d4ed8; }
+
+.nt-icon.tone-approved,
+.nt-status.tone-approved { background: #d1fae5; color: #047857; }
+
+.nt-icon.tone-rejected,
+.nt-status.tone-rejected { background: #fee2e2; color: #b91c1c; }
+
+.nt-icon.tone-default,
+.nt-status.tone-default { background: #f1f6f5; color: #4f6561; }
+
+/* ---------- Loading ---------- */
+
+.nt-skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
+.nt-skeleton-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+}
+
+@media (min-width: 700px) {
+  .nt-group,
+  div.nt-list {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
