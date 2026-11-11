@@ -22,6 +22,7 @@ import {
   checkmarkCircleOutline,
   closeOutline,
   imageOutline,
+  locationOutline,
   sendOutline,
 } from 'ionicons/icons';
 
@@ -44,6 +45,9 @@ import {
   getSignedUrl,
   uploadChatImage,
 } from '../services/photoService';
+import LocationPicker from '../components/LocationPicker';
+import LocationBubble from '../components/LocationBubble';
+import type { SharedLocation } from '../components/mapConfig';
 
 type ChatProps = {
   conversationId: string;
@@ -75,7 +79,23 @@ type ChatMessage = {
   senderId: string;
   text: string;
   imagePath: string;
+  location: SharedLocation | null;
   createdAt?: TimestampLike;
+};
+
+// Reads a { lat, lng, label } object from Firestore safely.
+const parseLocation = (value: unknown): SharedLocation | null => {
+  const raw = value as { lat?: unknown; lng?: unknown; label?: unknown } | null;
+
+  if (!raw || typeof raw.lat !== 'number' || typeof raw.lng !== 'number') {
+    return null;
+  }
+
+  return {
+    lat: raw.lat,
+    lng: raw.lng,
+    label: typeof raw.label === 'string' ? raw.label : '',
+  };
 };
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -200,6 +220,8 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
   const [sending, setSending] = useState(false);
   const [marking, setMarking] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [sendingLocation, setSendingLocation] = useState(false);
   const [error, setError] = useState('');
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -278,6 +300,7 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
               senderId: String(data.senderId ?? ''),
               text: String(data.text ?? ''),
               imagePath: String(data.imagePath ?? ''),
+              location: parseLocation(data.location),
               createdAt: data.createdAt ?? null,
             };
           })
@@ -446,6 +469,57 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
       setError(getSendErrorMessage(sendError));
     } finally {
       setSending(false);
+    }
+  };
+
+  // Sends a map pin as its own message.
+  const handleSendLocation = async (location: SharedLocation) => {
+    const user = auth.currentUser;
+
+    if (!user || !conversation) {
+      return;
+    }
+
+    setSendingLocation(true);
+    setError('');
+
+    try {
+      const batch = writeBatch(db);
+
+      const messageRef = doc(
+        collection(db, 'conversations', conversation.id, 'messages')
+      );
+
+      batch.set(messageRef, {
+        senderId: user.uid,
+        text: '',
+        location: {
+          lat: location.lat,
+          lng: location.lng,
+          label: location.label,
+        },
+        createdAt: serverTimestamp(),
+      });
+
+      const lastMessage = location.label
+        ? `📍 ${location.label}`
+        : '📍 Shared a location';
+
+      batch.update(doc(db, 'conversations', conversation.id), {
+        lastMessage: lastMessage.slice(0, 120),
+        lastMessageAt: serverTimestamp(),
+        lastSenderId: user.uid,
+        [`readAt.${user.uid}`]: serverTimestamp(),
+      });
+
+      await batch.commit();
+      setPickerOpen(false);
+    } catch (sendError) {
+      console.error('Send location error:', sendError);
+      setPickerOpen(false);
+      setError(getSendErrorMessage(sendError));
+    } finally {
+      setSendingLocation(false);
     }
   };
 
@@ -657,7 +731,7 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
                     <div
                       style={{
                         maxWidth: '75%',
-                        padding: '10px 12px',
+                        padding: message.location ? '4px' : '10px 12px',
                         borderRadius: '14px',
                         background: mine ? '#0F766E' : '#E6F7F3',
                         color: mine ? '#ffffff' : '#183B39',
@@ -675,6 +749,15 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
                         </div>
                       )}
 
+                      {message.location && (
+                        <LocationBubble
+                          lat={message.location.lat}
+                          lng={message.location.lng}
+                          label={message.location.label}
+                          mine={mine}
+                        />
+                      )}
+
                       {message.text && <div>{message.text}</div>}
 
                       <div
@@ -682,6 +765,7 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
                           fontSize: '11px',
                           opacity: 0.75,
                           marginTop: '4px',
+                          padding: message.location ? '0 6px 2px' : 0,
                           textAlign: 'right',
                         }}
                       >
@@ -766,6 +850,16 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
                 <IonIcon icon={imageOutline} slot="icon-only" />
               </IonButton>
 
+              <IonButton
+                fill="clear"
+                aria-label="Send a location"
+                disabled={sending || sendingLocation}
+                onClick={() => setPickerOpen(true)}
+                style={{ margin: '0 0 0 -8px' }}
+              >
+                <IonIcon icon={locationOutline} slot="icon-only" />
+              </IonButton>
+
               <IonInput
                 value={text}
                 placeholder="Type a message..."
@@ -829,6 +923,14 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
           </div>
         </IonContent>
       </IonModal>
+
+      {/* Map for choosing and sending a location */}
+      <LocationPicker
+        isOpen={pickerOpen}
+        sending={sendingLocation}
+        onClose={() => setPickerOpen(false)}
+        onSend={handleSendLocation}
+      />
 
       <IonAlert
         isOpen={confirmOpen}
