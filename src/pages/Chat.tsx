@@ -3,7 +3,6 @@ import type { ChangeEvent, FC, KeyboardEvent } from 'react';
 
 import {
   IonAlert,
-  IonBadge,
   IonButton,
   IonContent,
   IonFooter,
@@ -19,10 +18,16 @@ import {
 
 import {
   arrowBackOutline,
+  bagHandleOutline,
+  chatbubblesOutline,
+  checkmarkCircle,
   checkmarkCircleOutline,
   closeOutline,
   imageOutline,
+  informationCircleOutline,
   locationOutline,
+  personCircleOutline,
+  searchOutline,
   sendOutline,
 } from 'ionicons/icons';
 
@@ -48,6 +53,7 @@ import {
 import LocationPicker from '../components/LocationPicker';
 import LocationBubble from '../components/LocationBubble';
 import type { SharedLocation } from '../components/mapConfig';
+import './Chat.css';
 
 type ChatProps = {
   conversationId: string;
@@ -625,7 +631,7 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding">
+      <IonContent className="ion-padding chat-content">
         {loading ? (
           <div className="empty-state">
             <IonSpinner name="crescent" />
@@ -637,49 +643,71 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
           </p>
         ) : (
           <>
-            <div
-              style={{
-                background: '#E6F7F3',
-                borderRadius: '12px',
-                padding: '12px',
-                marginBottom: '12px',
-              }}
-            >
-              <strong>{conversation.itemName}</strong>{' '}
-              <IonBadge color={conversation.itemType === 'Found' ? 'success' : 'tertiary'}>
-                {conversation.itemType}
-              </IonBadge>{' '}
-              {itemStatus && (
-                <IonBadge
-                  color={
-                    itemStatus === 'Active'
-                      ? 'primary'
-                      : itemStatus === 'Missing'
-                        ? 'medium'
-                        : 'warning'
-                  }
+            {/* Item this conversation is about */}
+            <div className="chat-item-card">
+              <div className="chat-item-top">
+                <div
+                  className={`chat-item-icon ${
+                    conversation.itemType === 'Found' ? 'is-found' : 'is-lost'
+                  }`}
                 >
-                  {itemStatus === 'Missing' ? 'Report removed' : itemStatus}
-                </IonBadge>
-              )}
+                  <IonIcon
+                    icon={
+                      conversation.itemType === 'Found'
+                        ? bagHandleOutline
+                        : searchOutline
+                    }
+                  />
+                </div>
 
-              <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#718582' }}>
+                <div className="chat-item-text">
+                  <span className="chat-item-label">About this item</span>
+                  <strong>{conversation.itemName}</strong>
+
+                  <div className="chat-item-tags">
+                    <span
+                      className={`chat-tag ${
+                        conversation.itemType === 'Found'
+                          ? 'chat-tag-found'
+                          : 'chat-tag-lost'
+                      }`}
+                    >
+                      {conversation.itemType}
+                    </span>
+
+                    {itemStatus && itemStatus !== 'Active' && (
+                      <span
+                        className={`chat-tag ${
+                          itemStatus === 'Missing'
+                            ? 'chat-tag-muted'
+                            : 'chat-tag-claimed'
+                        }`}
+                      >
+                        {itemStatus === 'Missing' ? 'Report removed' : itemStatus}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <p className="chat-item-role">
+                <IonIcon icon={iAmOwner ? personCircleOutline : informationCircleOutline} />
                 {iAmOwner
                   ? 'You are the owner of this item.'
                   : 'The other user is the owner of this item.'}
               </p>
 
               {alreadyClaimed && (
-                <p style={{ margin: '8px 0 0', fontSize: '13px', fontWeight: 700 }}>
+                <p className="chat-item-claimed">
+                  <IonIcon icon={checkmarkCircle} />
                   This item has been marked as claimed.
                 </p>
               )}
 
               {canMarkClaimed && (
                 <IonButton
-                  size="small"
-                  color="success"
-                  style={{ marginTop: '8px' }}
+                  expand="block"
+                  className="chat-claim-btn"
                   disabled={marking}
                   onClick={() => setConfirmOpen(true)}
                 >
@@ -696,28 +724,31 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
             )}
 
             {messages.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#718582' }}>
-                No messages yet. Say hello and describe the item.
-              </p>
+              <div className="chat-empty">
+                <div className="chat-empty-icon">
+                  <IonIcon icon={chatbubblesOutline} />
+                </div>
+                <strong>No messages yet</strong>
+                <p>Say hello and describe the item to start the handover.</p>
+              </div>
             ) : (
               messages.map((message, index) => {
                 const mine = message.senderId === me;
                 const isLastOfGroup =
                   messages[index + 1]?.senderId !== message.senderId;
+                const isMediaOnly =
+                  Boolean(message.location) ||
+                  (Boolean(message.imagePath) && !message.text);
 
                 return (
                   <div
                     key={message.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-end',
-                      gap: '6px',
-                      justifyContent: mine ? 'flex-end' : 'flex-start',
-                      marginBottom: '8px',
-                    }}
+                    className={`chat-row ${mine ? 'chat-row-mine' : 'chat-row-theirs'} ${
+                      isLastOfGroup ? 'chat-row-last' : ''
+                    }`}
                   >
                     {!mine && (
-                      <div style={{ width: '28px', flexShrink: 0 }}>
+                      <div className="chat-avatar-slot">
                         {isLastOfGroup && (
                           <UserAvatar
                             name={otherName}
@@ -729,18 +760,15 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
                     )}
 
                     <div
-                      style={{
-                        maxWidth: '75%',
-                        padding: message.location ? '4px' : '10px 12px',
-                        borderRadius: '14px',
-                        background: mine ? '#0F766E' : '#E6F7F3',
-                        color: mine ? '#ffffff' : '#183B39',
-                        overflowWrap: 'anywhere',
-                        whiteSpace: 'pre-wrap',
-                      }}
+                      className={`chat-bubble ${
+                        mine ? 'chat-bubble-mine' : 'chat-bubble-theirs'
+                      } ${isMediaOnly ? 'chat-bubble-media' : ''}`}
                     >
                       {message.imagePath && (
-                        <div style={{ marginBottom: message.text ? '6px' : 0 }}>
+                        <div
+                          className="chat-bubble-image"
+                          style={{ marginBottom: message.text ? '6px' : 0 }}
+                        >
                           <ChatImage
                             path={message.imagePath}
                             onOpen={setViewerUrl}
@@ -758,19 +786,15 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
                         />
                       )}
 
-                      {message.text && <div>{message.text}</div>}
+                      {message.text && (
+                        <div className="chat-bubble-text">{message.text}</div>
+                      )}
 
-                      <div
-                        style={{
-                          fontSize: '11px',
-                          opacity: 0.75,
-                          marginTop: '4px',
-                          padding: message.location ? '0 6px 2px' : 0,
-                          textAlign: 'right',
-                        }}
-                      >
-                        {formatTime(message.createdAt)}
-                      </div>
+                      {isLastOfGroup && (
+                        <div className="chat-bubble-time">
+                          {formatTime(message.createdAt)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -824,14 +848,7 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
               </div>
             )}
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '4px 8px',
-              }}
-            >
+            <div className="chat-composer">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -843,6 +860,7 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
 
               <IonButton
                 fill="clear"
+                className="chat-tool-btn"
                 aria-label="Attach an image"
                 disabled={sending}
                 onClick={() => fileInputRef.current?.click()}
@@ -852,25 +870,26 @@ const Chat: FC<ChatProps> = ({ conversationId, onBack }) => {
 
               <IonButton
                 fill="clear"
+                className="chat-tool-btn"
                 aria-label="Send a location"
                 disabled={sending || sendingLocation}
                 onClick={() => setPickerOpen(true)}
-                style={{ margin: '0 0 0 -8px' }}
               >
                 <IonIcon icon={locationOutline} slot="icon-only" />
               </IonButton>
 
               <IonInput
+                className="chat-input"
                 value={text}
                 placeholder="Type a message..."
                 maxlength={1000}
                 disabled={sending}
                 onIonInput={(event) => setText(String(event.detail.value ?? ''))}
                 onKeyDown={handleKeyDown}
-                style={{ flex: 1 }}
               />
 
               <IonButton
+                className="chat-send-btn"
                 onClick={() => void handleSend()}
                 disabled={sending || (!text.trim() && !imageFile)}
                 aria-label="Send message"

@@ -1,0 +1,316 @@
+/* ========================================
+   CHAT SCREEN
+======================================== */
+
+.chat-content {
+  --background: #f6f8f7;
+}
+
+/* ---------- Item card at the top ---------- */
+
+.chat-item-card {
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid #e3ece9;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(24, 59, 57, 0.05);
+}
+
+.chat-item-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chat-item-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  font-size: 22px;
+}
+
+.chat-item-icon.is-found {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.chat-item-icon.is-lost {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.chat-item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chat-item-label {
+  color: #5f7471;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.chat-item-text strong {
+  margin: 1px 0 4px;
+  overflow: hidden;
+  color: #183b39;
+  font-size: 16px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chat-tag {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chat-tag-found {
+  background: #059669;
+  color: #ffffff;
+}
+
+.chat-tag-lost {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.chat-tag-claimed {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.chat-tag-muted {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.chat-item-role,
+.chat-item-claimed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid #edf3f1;
+  color: #5f7471;
+  font-size: 13px;
+}
+
+.chat-item-role ion-icon {
+  flex-shrink: 0;
+  color: #0f766e;
+  font-size: 17px;
+}
+
+.chat-item-claimed {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.chat-item-claimed ion-icon {
+  flex-shrink: 0;
+  font-size: 17px;
+}
+
+.chat-claim-btn {
+  margin: 12px 0 0;
+  height: 42px;
+  --background: #059669;
+  --background-activated: #047857;
+  --background-hover: #047857;
+  --color: #ffffff;
+  --border-radius: 12px;
+  --box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ---------- Empty conversation ---------- */
+
+.chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 20px;
+  color: #5f7471;
+  text-align: center;
+}
+
+.chat-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: #e6f7f3;
+  color: #0f766e;
+  font-size: 30px;
+}
+
+.chat-empty strong {
+  color: #183b39;
+  font-size: 15px;
+}
+
+.chat-empty p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ---------- Message rows and bubbles ---------- */
+
+.chat-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.chat-row-last {
+  margin-bottom: 12px;
+}
+
+.chat-row-mine {
+  justify-content: flex-end;
+}
+
+.chat-row-theirs {
+  justify-content: flex-start;
+}
+
+.chat-avatar-slot {
+  flex-shrink: 0;
+  width: 28px;
+}
+
+.chat-bubble {
+  max-width: 75%;
+  padding: 9px 13px;
+  border-radius: 18px;
+  font-size: 15px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.chat-bubble-mine {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.chat-bubble-theirs {
+  background: #ffffff;
+  color: #183b39;
+  border: 1px solid #e3ece9;
+}
+
+/* The corner next to the avatar/edge is less round, like Messenger. */
+.chat-row-mine.chat-row-last .chat-bubble {
+  border-bottom-right-radius: 6px;
+}
+
+.chat-row-theirs.chat-row-last .chat-bubble {
+  border-bottom-left-radius: 6px;
+}
+
+/* Photos and maps get a thin frame instead of full padding. */
+.chat-bubble-media {
+  padding: 4px;
+}
+
+.chat-bubble-media .chat-bubble-text {
+  padding: 4px 8px 0;
+}
+
+.chat-bubble-image img {
+  border-radius: 14px !important;
+}
+
+.chat-bubble-time {
+  margin-top: 3px;
+  font-size: 10.5px;
+  opacity: 0.7;
+  text-align: right;
+}
+
+.chat-bubble-media .chat-bubble-time {
+  padding: 0 8px 2px;
+}
+
+/* ---------- Message box at the bottom ---------- */
+
+.chat-composer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+}
+
+.chat-tool-btn {
+  margin: 0;
+  --padding-start: 6px;
+  --padding-end: 6px;
+  --color: #0f766e;
+  height: 40px;
+  font-size: 13px;
+}
+
+.chat-input {
+  flex: 1;
+  min-height: 40px !important;
+  margin: 0 4px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --background: #f1f6f5;
+  --placeholder-color: #8aa09c;
+  --border-radius: 999px;
+  border-radius: 999px;
+  overflow: hidden;
+  font-size: 15px;
+}
+
+.chat-send-btn {
+  margin: 0;
+  width: 42px;
+  height: 42px;
+  --background: #0f766e;
+  --background-activated: #0b5d57;
+  --color: #ffffff;
+  --border-radius: 50%;
+  --box-shadow: none;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.chat-send-btn ion-spinner {
+  width: 20px;
+  height: 20px;
+  color: #ffffff;
+}
