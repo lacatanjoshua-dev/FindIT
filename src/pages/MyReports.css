@@ -1,184 +1,68 @@
+/* ========================================
+   MY REPORTS
+   (cards, hero, search, filter, skeleton and empty state come from Home.css;
+    the Edit form comes from Report.css)
+======================================== */
 
 .my-reports-content {
-  --background: var(--findit-warm-white, #FAFAF8);
+  --background: var(--findit-warm-white, #f6f8f7);
 }
 
-.my-reports-heading {
-  margin: 8px 4px 16px;
+/* "Active" status tag (Claimed / Resolved are in Home.css) */
+.item-status-active {
+  background: #e6f7f3;
+  color: #0f766e;
 }
 
-.my-reports-heading p {
-  margin: 0;
-  font-size: 14px;
-}
+/* ---------- Edit / Delete buttons on each card ---------- */
 
-.my-reports-list-heading {
+.mr-actions {
   display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.mr-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  margin: 22px 4px 10px;
-}
-
-.my-reports-list-heading h2 {
-  margin: 0;
-  color: var(--findit-text, #183B39);
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.my-report-card {
-  margin: 12px 0;
-  border-radius: 16px;
-  box-shadow: 0 3px 12px rgba(15, 118, 110, 0.08);
-}
-
-.my-report-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.my-report-card ion-card-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--findit-text, #183B39);
-}
-
-.my-report-card ion-card-subtitle {
-  display: flex;
-  align-items: center;
-  margin-top: 10px;
+  justify-content: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font: inherit;
   font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.my-report-card ion-card-subtitle ion-icon {
-  font-size: 16px;
-  margin-right: 4px;
-}
-
-.my-report-description {
-  margin: 0 0 14px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--findit-muted, #718582);
-}
-
-.my-report-date {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--findit-muted, #718582);
-}
-
-.my-report-date ion-icon {
+.mr-btn ion-icon {
   font-size: 15px;
 }
 
-.my-reports-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 44px 20px;
-  gap: 10px;
+.mr-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
-.my-reports-empty ion-icon {
-  font-size: 42px;
-  color: var(--findit-teal, #0F766E);
+.mr-btn-edit {
+  border: 1px solid #b8ddd3;
+  background: #e6f7f3;
+  color: #0f766e;
 }
 
-.my-reports-empty h3 {
-  margin: 4px 0;
-  color: var(--findit-text, #183B39);
-  font-size: 17px;
+.mr-btn-edit:active {
+  background: #d1f0e8;
 }
 
-/* Bottom navigation */
-
-
-.findit-tabbar {
-  --background: #ffffff;
-  border-top: 1px solid #e5e7eb;
-  padding: 4px 0 env(safe-area-inset-bottom, 0);
-}
-
-.findit-tabbar ion-tab-button {
-  --color: #718582;
-  --color-selected: #0f766e;
-  font-size: 10px;
-  min-width: 0;
-}
-
-.findit-tabbar ion-tab-button ion-icon {
-  font-size: 21px;
-}
-
-.findit-tabbar ion-tab-button ion-label {
-  font-size: 10px;
-  white-space: nowrap;
-}
-
-
-
-.my-reports-footer {
-  display: block;
-  position: relative;
-  z-index: 10;
+.mr-btn-delete {
+  border: 1px solid #fecaca;
   background: #ffffff;
-  border-top: 1px solid rgba(15, 118, 110, 0.15);
+  color: #dc2626;
 }
 
-.my-reports-footer ion-toolbar {
-  --background: #ffffff;
-  --min-height: 62px;
-  padding: 0;
-}
-
-.my-reports-bottom-nav {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  width: 100%;
-  padding: 4px 2px;
-}
-
-.my-reports-nav-button {
-  flex: 1;
-  min-width: 0;
-  height: 54px;
-  margin: 0;
-  --padding-start: 0;
-  --padding-end: 0;
-  --color: #718582;
-  --color-hover: #0F766E;
-  --ripple-color: #10B981;
-}
-
-.my-reports-nav-button::part(native) {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 4px;
-}
-
-.my-reports-nav-button ion-icon {
-  font-size: 21px;
-}
-
-.my-reports-nav-button ion-label {
-  font-size: 9px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.my-reports-nav-button.selected {
-  --color: #0F766E;
-}
-
-.my-reports-nav-button.selected ion-label {
-  font-weight: 700;
+.mr-btn-delete:active {
+  background: #fef2f2;
 }

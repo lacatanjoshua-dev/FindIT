@@ -1,6 +1,3 @@
-import { supabase } from '../supabase';
-import './MyReports.css';
-
 import { useEffect, useMemo, useState } from 'react';
 import type { FC } from 'react';
 
@@ -8,11 +5,6 @@ import {
   IonAlert,
   IonBadge,
   IonButton,
-  IonCard,
-  IonCardContent,
-  IonCardHeader,
-  IonCardSubtitle,
-  IonCardTitle,
   IonContent,
   IonHeader,
   IonIcon,
@@ -26,7 +18,6 @@ import {
   IonSelect,
   IonSelectOption,
   IonSpinner,
-  IonText,
   IonTextarea,
   IonTitle,
   IonToolbar,
@@ -35,18 +26,21 @@ import {
 } from '@ionic/react';
 
 import {
-  locationOutline,
-  timeOutline,
+  addCircleOutline,
+  bagHandleOutline,
+  calendarOutline,
+  chatbubblesOutline,
+  clipboardOutline,
+  closeOutline,
+  createOutline,
   documentTextOutline,
   homeOutline,
-  searchOutline,
-  addCircleOutline,
-  clipboardOutline,
-  chatbubblesOutline,
+  locationOutline,
   personOutline,
-  createOutline,
+  pricetagOutline,
+  searchOutline,
+  timeOutline,
   trashOutline,
-  closeOutline,
 } from 'ionicons/icons';
 
 import { onAuthStateChanged } from 'firebase/auth';
@@ -62,6 +56,7 @@ import {
 } from 'firebase/firestore';
 
 import { auth, db } from '../firebase';
+import { supabase } from '../supabase';
 import {
   ITEM_CATEGORIES,
   DEFAULT_CATEGORY,
@@ -69,6 +64,10 @@ import {
 } from '../constants/categories';
 import type { ItemCategory } from '../constants/categories';
 import { useUnreadMessagesCount } from '../services/useUnreadMessages';
+
+import './Home.css';
+import './Report.css';
+import './MyReports.css';
 
 type MyReportsTab =
   | 'home'
@@ -126,9 +125,51 @@ const getReportType = (report: MyReport): ReportType => {
   return 'Lost';
 };
 
-// Shows the report's photo at the top of its card.
-// Renders nothing if there is no photo or if the image fails to load.
-const ReportPhoto: FC<{ src: string }> = ({ src }) => {
+const getStatusClass = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'claimed':
+      return 'item-status-claimed';
+    case 'resolved':
+      return 'item-status-resolved';
+    default:
+      return 'item-status-active';
+  }
+};
+
+// "Today", "Yesterday", "3 days ago" or "Nov 3".
+const formatDate = (report: MyReport) => {
+  const created = report.createdAt?.toDate?.();
+  let value: Date | null = created ?? null;
+
+  if (!value && report.date) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(report.date);
+    value = match
+      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      : null;
+  }
+
+  if (!value || Number.isNaN(value.getTime())) {
+    return report.date || 'No date';
+  }
+
+  const today = new Date();
+  const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const startValue = new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  const diffDays = Math.round((startToday.getTime() - startValue.getTime()) / 86400000);
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`;
+
+  return value.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: value.getFullYear() === today.getFullYear() ? undefined : 'numeric',
+  });
+};
+
+// The report's photo in the card. Falls back to an emoji.
+const ReportThumb: FC<{ src: string; type: ReportType }> = ({ src, type }) => {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -136,20 +177,23 @@ const ReportPhoto: FC<{ src: string }> = ({ src }) => {
   }, [src]);
 
   if (!src || failed) {
-    return null;
+    return (
+      <span className="item-photo-fallback">{type === 'Lost' ? '🔎' : '🎒'}</span>
+    );
   }
 
   return (
     <img
       src={src}
-      alt="Reported item"
+      alt=""
       loading="lazy"
       onError={() => setFailed(true)}
       style={{
         display: 'block',
         width: '100%',
-        maxHeight: '200px',
+        height: '100%',
         objectFit: 'cover',
+        borderRadius: 'inherit',
       }}
     />
   );
@@ -233,6 +277,22 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
     };
   }, []);
 
+  // Hide the success message after a few seconds.
+  useEffect(() => {
+    if (!successMessage) return;
+
+    const timer = setTimeout(() => setSuccessMessage(''), 4000);
+    return () => clearTimeout(timer);
+  }, [successMessage]);
+
+  const stats = useMemo(() => {
+    const active = reports.filter(
+      (report) => (report.status || 'Active') === 'Active'
+    ).length;
+
+    return { total: reports.length, active, closed: reports.length - active };
+  }, [reports]);
+
   const filteredReports = useMemo(() => {
     const searchText = search.trim().toLowerCase();
 
@@ -253,31 +313,6 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
       return matchesSearch && matchesFilter;
     });
   }, [reports, search, filter]);
-
-  const getStatusColor = (status?: string) => {
-    switch ((status || 'Active').toLowerCase()) {
-      case 'claimed':
-        return 'warning';
-      case 'resolved':
-        return 'success';
-      case 'active':
-        return 'primary';
-      default:
-        return 'medium';
-    }
-  };
-
-  const formatDate = (report: MyReport) => {
-    if (report.createdAt?.toDate) {
-      return report.createdAt.toDate().toLocaleDateString();
-    }
-
-    if (report.date) {
-      return report.date;
-    }
-
-    return 'Date not available';
-  };
 
   const openEditForm = (report: MyReport) => {
     const user = auth.currentUser;
@@ -327,7 +362,7 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
       !date ||
       !description.trim()
     ) {
-      setFormError('Please fill in all report fields.');
+      setFormError('Please fill in all required fields.');
       return;
     }
 
@@ -412,42 +447,66 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
     <IonPage>
       <IonHeader className="findit-header">
         <IonToolbar>
-          <IonTitle>My Reports</IonTitle>
+          <IonTitle>
+            <span className="brand-pin">●</span> My Reports
+          </IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding my-reports-content">
-        <div className="my-reports-heading">
-          <IonText color="medium">
-            <p>Keep track of the items you reported.</p>
-          </IonText>
+      <IonContent fullscreen className="findit-content my-reports-content">
+        <section className="welcome-section">
+          <p className="eyebrow">YOUR ACTIVITY</p>
+          <h1>My Reports</h1>
+          <p className="welcome-description">
+            Keep track of the items you reported, and edit or remove them.
+          </p>
+
+          <div className="hero-stats">
+            <div className="hero-stat">
+              <strong>{loading ? '–' : stats.total}</strong>
+              <span>Total</span>
+            </div>
+            <div className="hero-stat">
+              <strong>{loading ? '–' : stats.active}</strong>
+              <span>Active</span>
+            </div>
+            <div className="hero-stat">
+              <strong>{loading ? '–' : stats.closed}</strong>
+              <span>Claimed</span>
+            </div>
+          </div>
+        </section>
+
+        <div className="search-section">
+          <IonSearchbar
+            value={search}
+            debounce={150}
+            onIonInput={(event) => setSearch(event.detail.value || '')}
+            placeholder="Search your reports..."
+            className="findit-search"
+          />
         </div>
 
-        <IonSearchbar
-          value={search}
-          onIonInput={(event) => setSearch(event.detail.value || '')}
-          placeholder="Search your reports..."
-          className="findit-search"
-        />
+        <div className="filter-section">
+          <IonSegment
+            value={filter}
+            onIonChange={(event) =>
+              setFilter(String(event.detail.value || 'All'))
+            }
+          >
+            <IonSegmentButton value="All">
+              <IonLabel>All</IonLabel>
+            </IonSegmentButton>
 
-        <IonSegment
-          value={filter}
-          onIonChange={(event) =>
-            setFilter(String(event.detail.value || 'All'))
-          }
-        >
-          <IonSegmentButton value="All">
-            <IonLabel>All</IonLabel>
-          </IonSegmentButton>
+            <IonSegmentButton value="Lost">
+              <IonLabel>Lost</IonLabel>
+            </IonSegmentButton>
 
-          <IonSegmentButton value="Lost">
-            <IonLabel>Lost</IonLabel>
-          </IonSegmentButton>
-
-          <IonSegmentButton value="Found">
-            <IonLabel>Found</IonLabel>
-          </IonSegmentButton>
-        </IonSegment>
+            <IonSegmentButton value="Found">
+              <IonLabel>Found</IonLabel>
+            </IonSegmentButton>
+          </IonSegment>
+        </div>
 
         {successMessage && (
           <p className="findit-message success-message" role="status">
@@ -461,105 +520,136 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
           </p>
         )}
 
-        <div className="my-reports-list-heading">
-          <h2>Your Reports</h2>
-          <IonBadge color="medium">{filteredReports.length}</IonBadge>
+        <div className="section-heading">
+          <div>
+            <h2>Your Reports</h2>
+            <p>Newest first</p>
+          </div>
+
+          {!loading && (
+            <span className="item-count">
+              {filteredReports.length}{' '}
+              {filteredReports.length === 1 ? 'report' : 'reports'}
+            </span>
+          )}
         </div>
 
         {loading ? (
-          <div className="my-reports-empty">
-            <IonSpinner name="crescent" />
-            <p>Loading your reports...</p>
+          <div className="items-list" aria-busy="true" aria-label="Loading your reports">
+            {[0, 1, 2].map((key) => (
+              <div className="item-card skeleton-card" key={key}>
+                <div className="skeleton-block skeleton-thumb" />
+                <div className="skeleton-lines">
+                  <div className="skeleton-block skeleton-line short" />
+                  <div className="skeleton-block skeleton-line" />
+                  <div className="skeleton-block skeleton-line medium" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredReports.length === 0 ? (
-          <div className="my-reports-empty">
-            <IonIcon icon={documentTextOutline} />
-            <h3>No reports found</h3>
+          <div className="empty-state">
+            <div className="empty-state-icon">
+              <IonIcon icon={clipboardOutline} />
+            </div>
 
-            <IonText color="medium">
-              Your submitted Lost and Found reports will appear here.
-            </IonText>
+            {reports.length > 0 ? (
+              <>
+                <h3>No matching reports</h3>
+                <p>Try another search or filter.</p>
+              </>
+            ) : (
+              <>
+                <h3>No reports yet</h3>
+                <p>Your submitted Lost and Found reports will appear here.</p>
 
-            <IonButton
-              className="ion-margin-top"
-              onClick={() => onTabChange('report')}
-            >
-              <IonIcon icon={addCircleOutline} slot="start" />
-              Create Report
-            </IonButton>
+                <IonButton
+                  className="empty-state-button"
+                  onClick={() => onTabChange('report')}
+                >
+                  <IonIcon icon={addCircleOutline} slot="start" />
+                  Create Report
+                </IonButton>
+              </>
+            )}
           </div>
         ) : (
-          filteredReports.map((report) => {
-            const itemName = report.name || report.itemName || 'Untitled Item';
-            const itemType = getReportType(report);
-            const itemCategory = normalizeCategory(report.category);
-            const status = report.status || 'Active';
+          <div className="items-list">
+            {filteredReports.map((report) => {
+              const itemName = report.name || report.itemName || 'Untitled Item';
+              const itemType = getReportType(report);
+              const itemCategory = normalizeCategory(report.category);
+              const status = report.status || 'Active';
 
-            return (
-              <IonCard key={report.id} className="my-report-card">
-                <ReportPhoto src={report.imageUrl || ''} />
+              return (
+                <article className="item-card mr-card" key={report.id}>
+                  <div className="item-emoji item-thumb">
+                    <ReportThumb src={report.imageUrl || ''} type={itemType} />
 
-                <IonCardHeader>
-                  <div className="my-report-card-top">
-                    <IonBadge
-                      color={itemType === 'Found' ? 'success' : 'tertiary'}
+                    <span
+                      className={`type-tag ${
+                        itemType === 'Lost' ? 'type-tag-lost' : 'type-tag-found'
+                      }`}
                     >
                       {itemType}
-                    </IonBadge>
-
-                    <IonBadge color="medium">{itemCategory}</IonBadge>
-
-                    <IonBadge color={getStatusColor(status)}>
-                      {status}
-                    </IonBadge>
+                    </span>
                   </div>
 
-                  <IonCardTitle>{itemName}</IonCardTitle>
+                  <div className="item-info item-body">
+                    <div className="item-topline">
+                      <span className="item-category">{itemCategory}</span>
+                      <span className={`item-status-tag ${getStatusClass(status)}`}>
+                        {status}
+                      </span>
+                    </div>
 
-                  <IonCardSubtitle>
-                    <IonIcon icon={locationOutline} />
-                    {' '}
-                    {report.location || 'Location not specified'}
-                  </IonCardSubtitle>
-                </IonCardHeader>
+                    <h3>{itemName}</h3>
 
-                <IonCardContent>
-                  {report.description && (
-                    <p className="my-report-description">
-                      {report.description}
-                    </p>
-                  )}
+                    {report.description && (
+                      <p className="item-desc">{report.description}</p>
+                    )}
 
-                  <div className="my-report-date">
-                    <IonIcon icon={timeOutline} />
-                    <span>{formatDate(report)}</span>
+                    <div className="item-meta">
+                      <span>
+                        <IonIcon icon={locationOutline} />
+                        {report.location || 'No location'}
+                      </span>
+
+                      <span>
+                        <IonIcon icon={timeOutline} />
+                        {formatDate(report)}
+                      </span>
+                    </div>
+
+                    <div className="mr-actions">
+                      <button
+                        type="button"
+                        className="mr-btn mr-btn-edit"
+                        disabled={saving}
+                        onClick={() => openEditForm(report)}
+                      >
+                        <IonIcon icon={createOutline} />
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        className="mr-btn mr-btn-delete"
+                        disabled={saving}
+                        onClick={() => setDeletingReport(report)}
+                      >
+                        <IonIcon icon={trashOutline} />
+                        Delete
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="my-report-actions">
-                    <IonButton
-                      size="small"
-                      fill="outline"
-                      onClick={() => openEditForm(report)}
-                    >
-                      <IonIcon icon={createOutline} slot="start" />
-                      Edit
-                    </IonButton>
-
-                    <IonButton
-                      size="small"
-                      color="danger"
-                      fill="outline"
-                      onClick={() => setDeletingReport(report)}
-                    >
-                      <IonIcon icon={trashOutline} slot="start" />
-                      Delete
-                    </IonButton>
-                  </div>
-                </IonCardContent>
-              </IonCard>
-            );
-          })
+                </article>
+              );
+            })}
+          </div>
         )}
+
+        <div className="bottom-space" />
       </IonContent>
 
       <IonTabBar slot="bottom" className="findit-tabbar">
@@ -567,7 +657,6 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
           <IonIcon icon={homeOutline} />
           <IonLabel>Home</IonLabel>
         </IonTabButton>
-
 
         <IonTabButton tab="report" onClick={() => onTabChange('report')}>
           <IonIcon icon={addCircleOutline} />
@@ -599,7 +688,7 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
         </IonTabButton>
       </IonTabBar>
 
-      {/* Edit Report Modal */}
+      {/* Edit Report Modal (same form style as the Report page) */}
       <IonModal
         isOpen={editingReport !== null}
         onDidDismiss={() => {
@@ -609,7 +698,7 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
           }
         }}
       >
-        <IonHeader>
+        <IonHeader className="findit-header">
           <IonToolbar>
             <IonTitle>Edit Report</IonTitle>
 
@@ -625,97 +714,166 @@ const MyReports: FC<MyReportsProps> = ({ onTabChange }) => {
           </IonToolbar>
         </IonHeader>
 
-        <IonContent className="ion-padding">
-          <p>Update the details of your report.</p>
+        <IonContent className="findit-content">
+          <div className="rp-body">
+            <div className="rp-type-toggle" role="radiogroup" aria-label="Report type">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={type === 'Lost'}
+                className={`rp-type rp-type-lost ${type === 'Lost' ? 'is-active' : ''}`}
+                disabled={saving}
+                onClick={() => setType('Lost')}
+              >
+                <span className="rp-type-icon">
+                  <IonIcon icon={searchOutline} />
+                </span>
+                <strong>Lost item</strong>
+                <small>I lost this</small>
+              </button>
 
-          <IonLabel position="stacked">Item name</IonLabel>
-          <IonInput
-            className="report-input"
-            value={name}
-            placeholder="e.g. Black backpack"
-            onIonInput={(event) =>
-              setName(String(event.detail.value ?? ''))
-            }
-          />
+              <button
+                type="button"
+                role="radio"
+                aria-checked={type === 'Found'}
+                className={`rp-type rp-type-found ${type === 'Found' ? 'is-active' : ''}`}
+                disabled={saving}
+                onClick={() => setType('Found')}
+              >
+                <span className="rp-type-icon">
+                  <IonIcon icon={bagHandleOutline} />
+                </span>
+                <strong>Found item</strong>
+                <small>I found this</small>
+              </button>
+            </div>
 
-          <IonLabel position="stacked">Report type</IonLabel>
-          <IonSelect
-            className="report-input"
-            value={type}
-            interface="popover"
-            onIonChange={(event) =>
-              setType(event.detail.value as ReportType)
-            }
-          >
-            <IonSelectOption value="Lost">Lost item</IonSelectOption>
-            <IonSelectOption value="Found">Found item</IonSelectOption>
-          </IonSelect>
+            <section className="rp-card">
+              <h2 className="rp-card-title">
+                <IonIcon icon={pricetagOutline} /> Item details
+              </h2>
 
-          <IonLabel position="stacked">Category</IonLabel>
-          <IonSelect
-            className="report-input"
-            value={category}
-            interface="popover"
-            onIonChange={(event) =>
-              setCategory(event.detail.value as ItemCategory)
-            }
-          >
-            {ITEM_CATEGORIES.map((item) => (
-              <IonSelectOption key={item} value={item}>
-                {item}
-              </IonSelectOption>
-            ))}
-          </IonSelect>
+              <div className="rp-field">
+                <span className="rp-label">
+                  Item name <span className="rp-req">*</span>
+                </span>
+                <IonInput
+                  className="rp-input"
+                  aria-label="Item name"
+                  value={name}
+                  maxlength={80}
+                  placeholder="e.g. Black backpack"
+                  disabled={saving}
+                  onIonInput={(event) => setName(String(event.detail.value ?? ''))}
+                />
+              </div>
 
-          <IonLabel position="stacked">Location</IonLabel>
-          <IonInput
-            className="report-input"
-            value={location}
-            placeholder="Where was it lost or found?"
-            onIonInput={(event) =>
-              setLocation(String(event.detail.value ?? ''))
-            }
-          />
+              <div className="rp-field">
+                <span className="rp-label">Category</span>
+                <IonSelect
+                  className="rp-input"
+                  aria-label="Category"
+                  value={category}
+                  interface="popover"
+                  disabled={saving}
+                  onIonChange={(event) =>
+                    setCategory(event.detail.value as ItemCategory)
+                  }
+                >
+                  {ITEM_CATEGORIES.map((item) => (
+                    <IonSelectOption key={item} value={item}>
+                      {item}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+              </div>
+            </section>
 
-          <IonLabel position="stacked">Date</IonLabel>
-          <IonInput
-            className="report-input"
-            type="date"
-            value={date}
-            onIonInput={(event) =>
-              setDate(String(event.detail.value ?? ''))
-            }
-          />
+            <section className="rp-card">
+              <h2 className="rp-card-title">
+                <IonIcon icon={locationOutline} /> Where and when
+              </h2>
 
-          <IonLabel position="stacked">Description</IonLabel>
-          <IonTextarea
-            className="report-input"
-            value={description}
-            placeholder="Describe the item and useful details"
-            autoGrow
-            onIonInput={(event) =>
-              setDescription(String(event.detail.value ?? ''))
-            }
-          />
+              <div className="rp-field">
+                <span className="rp-label">
+                  Location <span className="rp-req">*</span>
+                </span>
+                <IonInput
+                  className="rp-input"
+                  aria-label="Location"
+                  value={location}
+                  maxlength={120}
+                  placeholder="Where was it lost or found?"
+                  disabled={saving}
+                  onIonInput={(event) =>
+                    setLocation(String(event.detail.value ?? ''))
+                  }
+                />
+              </div>
 
-          {formError && (
-            <p className="findit-message error-message" role="alert">
-              {formError}
-            </p>
-          )}
+              <div className="rp-field">
+                <span className="rp-label">
+                  <IonIcon icon={calendarOutline} /> Date{' '}
+                  <span className="rp-req">*</span>
+                </span>
+                <IonInput
+                  className="rp-input"
+                  aria-label="Date"
+                  type="date"
+                  value={date}
+                  max={getTodayDate()}
+                  disabled={saving}
+                  onIonInput={(event) => setDate(String(event.detail.value ?? ''))}
+                />
+              </div>
+            </section>
 
-          <IonButton
-            expand="block"
-            className="submit-report-button"
-            disabled={saving}
-            onClick={() => void saveEditedReport()}
-          >
-            {saving ? (
-              <IonSpinner name="crescent" />
-            ) : (
-              'Save Changes'
+            <section className="rp-card">
+              <h2 className="rp-card-title">
+                <IonIcon icon={documentTextOutline} /> Description{' '}
+                <span className="rp-req">*</span>
+              </h2>
+
+              <IonTextarea
+                className="rp-input rp-textarea"
+                aria-label="Description"
+                value={description}
+                maxlength={500}
+                counter
+                autoGrow
+                placeholder="Describe the item and useful details"
+                disabled={saving}
+                onIonInput={(event) =>
+                  setDescription(String(event.detail.value ?? ''))
+                }
+              />
+            </section>
+
+            {formError && (
+              <p className="findit-message error-message" role="alert">
+                {formError}
+              </p>
             )}
-          </IonButton>
+
+            <IonButton
+              expand="block"
+              className="rp-submit"
+              disabled={saving}
+              onClick={() => void saveEditedReport()}
+            >
+              {saving ? <IonSpinner name="crescent" /> : 'Save Changes'}
+            </IonButton>
+
+            <IonButton
+              expand="block"
+              fill="clear"
+              className="rp-cancel"
+              disabled={saving}
+              onClick={closeEditForm}
+            >
+              Cancel
+            </IonButton>
+          </div>
         </IonContent>
       </IonModal>
 

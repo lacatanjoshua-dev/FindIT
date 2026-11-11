@@ -7,7 +7,6 @@ import {
   IonHeader,
   IonIcon,
   IonInput,
-  IonLabel,
   IonPage,
   IonSelect,
   IonSelectOption,
@@ -21,11 +20,14 @@ import {
 import {
   addCircleOutline,
   arrowBackOutline,
-  locationOutline,
+  bagHandleOutline,
   calendarOutline,
+  cameraOutline,
+  closeOutline,
   documentTextOutline,
-  imageOutline,
-  closeCircleOutline,
+  locationOutline,
+  pricetagOutline,
+  searchOutline,
 } from 'ionicons/icons';
 
 import {
@@ -41,6 +43,7 @@ import { ITEM_CATEGORIES, DEFAULT_CATEGORY } from '../constants/categories';
 import type { ItemCategory } from '../constants/categories';
 
 import './Home.css';
+import './Report.css';
 
 const getTodayDate = () => {
   const today = new Date();
@@ -133,7 +136,7 @@ const Report: FC<ReportProps> = ({ onTabChange }) => {
     }
 
     // Refresh the Firebase token so the latest custom claims are included,
-    // then log the role and sub that Supabase will see.
+    // then read the role that Supabase will see.
     let firebaseRole: unknown;
 
     try {
@@ -151,7 +154,7 @@ const Report: FC<ReportProps> = ({ onTabChange }) => {
       !date ||
       !description.trim()
     ) {
-      setError('Please fill in all report fields.');
+      setError('Please fill in all required fields.');
       return;
     }
 
@@ -251,159 +254,216 @@ const Report: FC<ReportProps> = ({ onTabChange }) => {
             <IonIcon icon={arrowBackOutline} />
           </IonButton>
 
-          <IonTitle>
-            <span className="brand-pin">●</span> Report an Item
-          </IonTitle>
+          <IonTitle>Report an Item</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="findit-content ion-padding">
-        <section className="welcome-section">
-          <p className="eyebrow">UNIVERSITY LOST &amp; FOUND</p>
-          <h1>Report an Item</h1>
+      <IonContent className="findit-content">
+        <section className="welcome-section rp-hero">
+          <p className="eyebrow">NEW REPORT</p>
+          <h1>What happened?</h1>
           <p className="welcome-description">
-            Help reunite lost belongings with their owners by providing
-            the details below.
+            Fill in the details so the owner or finder can recognize the item.
           </p>
         </section>
 
-        <div className="report-form">
-          {/* Item Photo */}
-          <IonLabel position="stacked">Item Photo</IonLabel>
+        <div className="rp-body">
+          {/* Lost or Found */}
+          <div className="rp-type-toggle" role="radiogroup" aria-label="Report type">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={type === 'Lost'}
+              className={`rp-type rp-type-lost ${type === 'Lost' ? 'is-active' : ''}`}
+              disabled={saving}
+              onClick={() => setType('Lost')}
+            >
+              <span className="rp-type-icon">
+                <IonIcon icon={searchOutline} />
+              </span>
+              <strong>I lost something</strong>
+              <small>Ask others to help find it</small>
+            </button>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handlePhotoChange}
-            style={{ display: 'none' }}
-          />
+            <button
+              type="button"
+              role="radio"
+              aria-checked={type === 'Found'}
+              className={`rp-type rp-type-found ${type === 'Found' ? 'is-active' : ''}`}
+              disabled={saving}
+              onClick={() => setType('Found')}
+            >
+              <span className="rp-type-icon">
+                <IonIcon icon={bagHandleOutline} />
+              </span>
+              <strong>I found something</strong>
+              <small>Help return it to the owner</small>
+            </button>
+          </div>
 
-          <IonButton
-            expand="block"
-            fill="outline"
-            disabled={saving}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <IonIcon icon={imageOutline} slot="start" />
-            {selectedPhoto ? 'Change Photo' : 'Choose Photo'}
-          </IonButton>
+          {/* Photo */}
+          <section className="rp-card">
+            <h2 className="rp-card-title">
+              <IonIcon icon={cameraOutline} /> Photo
+              <span className="rp-optional">Optional</span>
+            </h2>
 
-          {photoPreview && (
-            <div className="report-photo-preview">
-              <img
-                src={photoPreview}
-                alt="Selected item preview"
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  maxHeight: '280px',
-                  objectFit: 'contain',
-                  borderRadius: '12px',
-                  marginTop: '12px',
-                }}
-              />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              style={{ display: 'none' }}
+              aria-label="Choose a photo of the item"
+            />
 
-              <IonButton
-                expand="block"
-                fill="clear"
-                color="danger"
+            {photoPreview ? (
+              <div className="rp-photo-preview">
+                <img src={photoPreview} alt="Selected item preview" />
+
+                <button
+                  type="button"
+                  className="rp-photo-remove"
+                  aria-label="Remove photo"
+                  disabled={saving}
+                  onClick={removePhoto}
+                >
+                  <IonIcon icon={closeOutline} />
+                </button>
+
+                <button
+                  type="button"
+                  className="rp-photo-change"
+                  disabled={saving}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <IonIcon icon={cameraOutline} /> Change
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="rp-dropzone"
                 disabled={saving}
-                onClick={removePhoto}
+                onClick={() => fileInputRef.current?.click()}
               >
-                <IonIcon icon={closeCircleOutline} slot="start" />
-                Remove Photo
-              </IonButton>
+                <span className="rp-dropzone-icon">
+                  <IonIcon icon={cameraOutline} />
+                </span>
+                <strong>Add a photo</strong>
+                <small>A clear photo makes the item easier to recognize · max 5 MB</small>
+              </button>
+            )}
+          </section>
+
+          {/* Item details */}
+          <section className="rp-card">
+            <h2 className="rp-card-title">
+              <IonIcon icon={pricetagOutline} /> Item details
+            </h2>
+
+            <div className="rp-field">
+              <span className="rp-label">
+                Item name <span className="rp-req">*</span>
+              </span>
+              <IonInput
+                className="rp-input"
+                aria-label="Item name"
+                value={name}
+                maxlength={80}
+                placeholder="e.g. Black backpack"
+                disabled={saving}
+                onIonInput={(event) => setName(String(event.detail.value ?? ''))}
+              />
             </div>
-          )}
 
-          <p style={{ fontSize: '12px', color: '#718582' }}>
-            Optional. Image files only, maximum 5 MB.
-          </p>
+            <div className="rp-field">
+              <span className="rp-label">Category</span>
+              <IonSelect
+                className="rp-input"
+                aria-label="Category"
+                value={category}
+                interface="popover"
+                placeholder="Choose a category"
+                disabled={saving}
+                onIonChange={(event) =>
+                  setCategory(event.detail.value as ItemCategory)
+                }
+              >
+                {ITEM_CATEGORIES.map((itemCategory) => (
+                  <IonSelectOption key={itemCategory} value={itemCategory}>
+                    {itemCategory}
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </div>
+          </section>
 
-          {/* Item Name */}
-          <IonLabel position="stacked">Item Name</IonLabel>
-          <IonInput
-            className="report-input"
-            value={name}
-            placeholder="e.g. Black backpack"
-            onIonInput={(event) =>
-              setName(String(event.detail.value ?? ''))
-            }
-          />
+          {/* Where and when */}
+          <section className="rp-card">
+            <h2 className="rp-card-title">
+              <IonIcon icon={locationOutline} /> Where and when
+            </h2>
 
-          {/* Report Type */}
-          <IonLabel position="stacked">Report Type</IonLabel>
-          <IonSelect
-            className="report-input"
-            value={type}
-            interface="popover"
-            placeholder="Choose Lost or Found"
-            onIonChange={(event) =>
-              setType(event.detail.value as 'Lost' | 'Found')
-            }
-          >
-            <IonSelectOption value="Lost">Lost Item</IonSelectOption>
-            <IonSelectOption value="Found">Found Item</IonSelectOption>
-          </IonSelect>
+            <div className="rp-field">
+              <span className="rp-label">
+                Location <span className="rp-req">*</span>
+              </span>
+              <IonInput
+                className="rp-input"
+                aria-label="Location"
+                value={location}
+                maxlength={120}
+                placeholder={
+                  type === 'Lost'
+                    ? 'Where did you last have it?'
+                    : 'Where did you find it?'
+                }
+                disabled={saving}
+                onIonInput={(event) =>
+                  setLocation(String(event.detail.value ?? ''))
+                }
+              />
+            </div>
 
-          {/* Category */}
-          <IonLabel position="stacked">Category</IonLabel>
-          <IonSelect
-            className="report-input"
-            value={category}
-            interface="popover"
-            placeholder="Choose a category"
-            onIonChange={(event) =>
-              setCategory(event.detail.value as ItemCategory)
-            }
-          >
-            {ITEM_CATEGORIES.map((itemCategory) => (
-              <IonSelectOption key={itemCategory} value={itemCategory}>
-                {itemCategory}
-              </IonSelectOption>
-            ))}
-          </IonSelect>
-
-          {/* Location */}
-          <IonLabel position="stacked">
-            <IonIcon icon={locationOutline} /> Location
-          </IonLabel>
-          <IonInput
-            className="report-input"
-            value={location}
-            placeholder="Where was it lost or found?"
-            onIonInput={(event) =>
-              setLocation(String(event.detail.value ?? ''))
-            }
-          />
-
-          {/* Date */}
-          <IonLabel position="stacked">
-            <IonIcon icon={calendarOutline} /> Date
-          </IonLabel>
-          <IonInput
-            className="report-input"
-            type="date"
-            value={date}
-            onIonInput={(event) =>
-              setDate(String(event.detail.value ?? ''))
-            }
-          />
+            <div className="rp-field">
+              <span className="rp-label">
+                <IonIcon icon={calendarOutline} /> Date{' '}
+                <span className="rp-req">*</span>
+              </span>
+              <IonInput
+                className="rp-input"
+                aria-label="Date"
+                type="date"
+                value={date}
+                max={getTodayDate()}
+                disabled={saving}
+                onIonInput={(event) => setDate(String(event.detail.value ?? ''))}
+              />
+            </div>
+          </section>
 
           {/* Description */}
-          <IonLabel position="stacked">
-            <IonIcon icon={documentTextOutline} /> Description
-          </IonLabel>
-          <IonTextarea
-            className="report-input"
-            value={description}
-            placeholder="Describe the item, its color, brand, or other identifying details."
-            autoGrow
-            onIonInput={(event) =>
-              setDescription(String(event.detail.value ?? ''))
-            }
-          />
+          <section className="rp-card">
+            <h2 className="rp-card-title">
+              <IonIcon icon={documentTextOutline} /> Description{' '}
+              <span className="rp-req">*</span>
+            </h2>
+
+            <IonTextarea
+              className="rp-input rp-textarea"
+              aria-label="Description"
+              value={description}
+              maxlength={500}
+              counter
+              autoGrow
+              placeholder="Color, brand, size, stickers, what's inside… anything that helps identify it."
+              disabled={saving}
+              onIonInput={(event) =>
+                setDescription(String(event.detail.value ?? ''))
+              }
+            />
+          </section>
 
           {error && (
             <p className="findit-message error-message" role="alert">
@@ -411,10 +471,9 @@ const Report: FC<ReportProps> = ({ onTabChange }) => {
             </p>
           )}
 
-          {/* Submit */}
           <IonButton
             expand="block"
-            className="submit-report-button"
+            className="rp-submit"
             disabled={saving}
             onClick={() => void submitReport()}
           >
@@ -423,15 +482,15 @@ const Report: FC<ReportProps> = ({ onTabChange }) => {
             ) : (
               <>
                 <IonIcon icon={addCircleOutline} slot="start" />
-                Submit Report
+                Submit {type} Report
               </>
             )}
           </IonButton>
 
-          {/* Cancel */}
           <IonButton
             expand="block"
-            fill="outline"
+            fill="clear"
+            className="rp-cancel"
             disabled={saving}
             onClick={() => onTabChange('home')}
           >
