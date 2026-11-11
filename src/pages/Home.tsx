@@ -17,7 +17,6 @@ import {
   IonTabButton,
   IonTitle,
   IonToolbar,
-  IonSpinner,
 } from '@ionic/react';
 
 import {
@@ -25,12 +24,14 @@ import {
   calendarOutline,
   chatbubbleEllipsesOutline,
   chatbubblesOutline,
+  chevronForward,
   clipboardOutline,
   closeOutline,
   documentTextOutline,
   homeOutline,
   locationOutline,
   notificationsOutline,
+  personCircleOutline,
   personOutline,
   searchOutline,
   timeOutline,
@@ -87,6 +88,41 @@ type ItemPhotoProps = {
   variant: 'card' | 'details';
 };
 
+// Turns "2026-11-10" into "Today", "Yesterday", "3 days ago" or "Nov 3".
+const formatRelativeDate = (value: string): string => {
+  if (!value) {
+    return 'No date';
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  const parsed = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  parsed.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round(
+    (today.getTime() - parsed.getTime()) / 86400000
+  );
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`;
+
+  return parsed.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year:
+      parsed.getFullYear() === today.getFullYear() ? undefined : 'numeric',
+  });
+};
+
 // Shows the item's photo. Falls back to the emoji if there is no photo
 // or if the image fails to load.
 const ItemPhoto: FC<ItemPhotoProps> = ({ src, type, variant }) => {
@@ -99,37 +135,20 @@ const ItemPhoto: FC<ItemPhotoProps> = ({ src, type, variant }) => {
   const emoji = type === 'Lost' ? '🔎' : '🎒';
 
   if (!src || failed) {
-    return <span>{emoji}</span>;
-  }
-
-  if (variant === 'details') {
-    return (
-      <img
-        src={src}
-        alt=""
-        onError={() => setFailed(true)}
-        style={{
-          display: 'block',
-          width: '100%',
-          maxHeight: '280px',
-          objectFit: 'contain',
-          borderRadius: '12px',
-        }}
-      />
-    );
+    return <span className="item-photo-fallback">{emoji}</span>;
   }
 
   return (
     <img
       src={src}
       alt=""
-      loading="lazy"
+      loading={variant === 'card' ? 'lazy' : undefined}
       onError={() => setFailed(true)}
       style={{
         display: 'block',
         width: '100%',
         height: '100%',
-        objectFit: 'cover',
+        objectFit: variant === 'card' ? 'cover' : 'contain',
         borderRadius: 'inherit',
       }}
     />
@@ -260,6 +279,18 @@ const Home: FC<HomeProps> = ({
     [items, filter]
   );
 
+  const lostCount = useMemo(
+    () => items.filter((item) => item.type === 'Lost').length,
+    [items]
+  );
+
+  const foundCount = items.length - lostCount;
+
+  const returnedCount = useMemo(
+    () => items.filter((item) => item.status !== 'Active').length,
+    [items]
+  );
+
   // Open a conversation with the reporter of the item.
   const handleMessage = async (item: LostFoundItem) => {
     setMessagingItemId(item.id);
@@ -305,6 +336,9 @@ const Home: FC<HomeProps> = ({
     }
   };
 
+  const statusClass = (status: ReportStatus) =>
+    status === 'Claimed' ? 'item-status-claimed' : 'item-status-resolved';
+
   return (
     <IonPage>
       <IonHeader className="findit-header">
@@ -338,6 +372,7 @@ const Home: FC<HomeProps> = ({
       </IonHeader>
 
       <IonContent fullscreen className="findit-content">
+        {/* Hero with live counts */}
         <section className="welcome-section">
           <p className="eyebrow">UNIVERSITY LOST &amp; FOUND</p>
 
@@ -346,6 +381,21 @@ const Home: FC<HomeProps> = ({
           <p className="welcome-description">
             Lost something? Found something? Let's help it find its way home.
           </p>
+
+          <div className="hero-stats">
+            <div className="hero-stat">
+              <strong>{loading ? '–' : lostCount}</strong>
+              <span>Lost</span>
+            </div>
+            <div className="hero-stat">
+              <strong>{loading ? '–' : foundCount}</strong>
+              <span>Found</span>
+            </div>
+            <div className="hero-stat">
+              <strong>{loading ? '–' : returnedCount}</strong>
+              <span>Claimed</span>
+            </div>
+          </div>
         </section>
 
         {/* Tapping the search bar opens the Search page. */}
@@ -365,7 +415,7 @@ const Home: FC<HomeProps> = ({
             }
           >
             <IonSegmentButton value="All">
-              <IonLabel>All Items</IonLabel>
+              <IonLabel>All</IonLabel>
             </IonSegmentButton>
 
             <IonSegmentButton value="Lost">
@@ -396,116 +446,142 @@ const Home: FC<HomeProps> = ({
             <p>Items reported around your campus</p>
           </div>
 
-          <span className="item-count">
-            {filteredItems.length}{' '}
-            {filteredItems.length === 1 ? 'item' : 'items'}
-          </span>
+          {!loading && (
+            <span className="item-count">
+              {filteredItems.length}{' '}
+              {filteredItems.length === 1 ? 'item' : 'items'}
+            </span>
+          )}
         </div>
 
         {loading ? (
-          <div className="empty-state">
-            <IonSpinner name="crescent" />
-            <p>Loading reports...</p>
+          <div className="items-list" aria-busy="true" aria-label="Loading reports">
+            {[0, 1, 2].map((key) => (
+              <div className="item-card skeleton-card" key={key}>
+                <div className="skeleton-block skeleton-thumb" />
+                <div className="skeleton-lines">
+                  <div className="skeleton-block skeleton-line short" />
+                  <div className="skeleton-block skeleton-line" />
+                  <div className="skeleton-block skeleton-line" />
+                  <div className="skeleton-block skeleton-line medium" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="items-list">
-            {filteredItems.map((item) => (
-              <article
-                className="item-card item-card-clickable"
-                key={item.id}
-                role="button"
-                tabIndex={0}
-                aria-label={`View details for ${item.name}`}
-                onClick={() => setSelectedItem(item)}
-                onKeyDown={(event) => handleItemKeyDown(event, item)}
-              >
-                <div
-                  className="item-emoji"
-                  style={{
-                    overflow: 'hidden',
-                    padding: item.imageUrl ? 0 : undefined,
-                  }}
+            {filteredItems.map((item) => {
+              const isMine = item.userId === currentUser?.uid;
+              const showMessage = canMessage(item);
+
+              return (
+                <article
+                  className="item-card item-card-clickable home-item-card"
+                  key={item.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View details for ${item.name}`}
+                  onClick={() => setSelectedItem(item)}
+                  onKeyDown={(event) => handleItemKeyDown(event, item)}
                 >
-                  <ItemPhoto
-                    src={item.imageUrl}
-                    type={item.type}
-                    variant="card"
-                  />
-                </div>
+                  <div className="item-emoji item-thumb">
+                    <ItemPhoto
+                      src={item.imageUrl}
+                      type={item.type}
+                      variant="card"
+                    />
 
-                <div className="item-info">
-                  <IonBadge
-                    className={
-                      item.type === 'Lost' ? 'status-lost' : 'status-found'
-                    }
-                  >
-                    {item.type}
-                  </IonBadge>
-
-                  <IonBadge
-                    color={
-                      item.status === 'Active'
-                        ? 'primary'
-                        : item.status === 'Claimed'
-                          ? 'warning'
-                          : 'success'
-                    }
-                  >
-                    {item.status}
-                  </IonBadge>
-
-                  <IonBadge color="light">{item.category}</IonBadge>
-
-                  <h3>{item.name}</h3>
-                  <p>{item.description}</p>
-
-                  <div className="item-meta">
-                    <span>
-                      <IonIcon icon={locationOutline} />
-                      {item.location}
-                    </span>
-
-                    <span>
-                      <IonIcon icon={timeOutline} />
-                      {item.date}
+                    <span
+                      className={`type-tag ${
+                        item.type === 'Lost' ? 'type-tag-lost' : 'type-tag-found'
+                      }`}
+                    >
+                      {item.type}
                     </span>
                   </div>
 
-                  {canMessage(item) && (
-                    <div
-                      className="bookmark-action"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <IonButton
-                        size="small"
-                        fill="outline"
-                        disabled={messagingItemId === item.id}
-                        onClick={() => void handleMessage(item)}
-                      >
-                        <IonIcon
-                          icon={chatbubbleEllipsesOutline}
-                          slot="start"
-                        />
-                        {messagingItemId === item.id ? 'Opening...' : 'Message'}
-                      </IonButton>
-                    </div>
-                  )}
+                  <div className="item-info item-body">
+                    <div className="item-topline">
+                      <span className="item-category">{item.category}</span>
 
-                  <small className="item-details-hint">
-                    {item.userId === currentUser?.uid ? 'Your report · ' : ''}
-                    Tap to view details
-                  </small>
-                </div>
-              </article>
-            ))}
+                      {item.status !== 'Active' && (
+                        <span
+                          className={`item-status-tag ${statusClass(item.status)}`}
+                        >
+                          {item.status}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3>{item.name}</h3>
+
+                    {item.description && (
+                      <p className="item-desc">{item.description}</p>
+                    )}
+
+                    <div className="item-meta">
+                      <span>
+                        <IonIcon icon={locationOutline} />
+                        {item.location}
+                      </span>
+
+                      <span>
+                        <IonIcon icon={timeOutline} />
+                        {formatRelativeDate(item.date)}
+                      </span>
+                    </div>
+
+                    <div
+                      className="item-card-footer"
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
+                    >
+                      {isMine ? (
+                        <span className="item-mine-tag">Your report</span>
+                      ) : (
+                        <span />
+                      )}
+
+                      {showMessage ? (
+                        <IonButton
+                          size="small"
+                          className="item-message-btn"
+                          disabled={messagingItemId === item.id}
+                          onClick={() => void handleMessage(item)}
+                        >
+                          <IonIcon
+                            icon={chatbubbleEllipsesOutline}
+                            slot="start"
+                          />
+                          {messagingItemId === item.id
+                            ? 'Opening...'
+                            : 'Message'}
+                        </IonButton>
+                      ) : (
+                        <IonIcon
+                          icon={chevronForward}
+                          className="item-chevron"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
 
             {filteredItems.length === 0 && (
               <div className="empty-state">
-                <IonIcon icon={searchOutline} />
+                <div className="empty-state-icon">
+                  <IonIcon icon={searchOutline} />
+                </div>
                 <h3>No items found</h3>
                 <p>Try another filter or submit a report.</p>
 
-                <IonButton onClick={() => onActiveTabChange('report')}>
+                <IonButton
+                  className="empty-state-button"
+                  onClick={() => onActiveTabChange('report')}
+                >
                   <IonIcon icon={addCircleOutline} slot="start" />
                   Report an Item
                 </IonButton>
@@ -575,7 +651,7 @@ const Home: FC<HomeProps> = ({
         isOpen={selectedItem !== null}
         onDidDismiss={() => setSelectedItem(null)}
       >
-        <IonHeader>
+        <IonHeader className="findit-header">
           <IonToolbar>
             <IonTitle>Item Details</IonTitle>
 
@@ -593,35 +669,37 @@ const Home: FC<HomeProps> = ({
         <IonContent className="ion-padding item-details-content">
           {selectedItem && (
             <div className="item-details-panel">
-              <div className="item-details-emoji">
+              <div className="item-details-photo">
                 <ItemPhoto
                   src={selectedItem.imageUrl}
                   type={selectedItem.type}
                   variant="details"
                 />
+
+                <span
+                  className={`type-tag type-tag-large ${
+                    selectedItem.type === 'Lost'
+                      ? 'type-tag-lost'
+                      : 'type-tag-found'
+                  }`}
+                >
+                  {selectedItem.type}
+                </span>
               </div>
 
-              <IonBadge
-                className={
-                  selectedItem.type === 'Lost'
-                    ? 'status-lost'
-                    : 'status-found'
-                }
-              >
-                {selectedItem.type}
-              </IonBadge>
+              <div className="item-topline">
+                <span className="item-category">{selectedItem.category}</span>
 
-              <IonBadge
-                color={
-                  selectedItem.status === 'Active'
-                    ? 'primary'
-                    : selectedItem.status === 'Claimed'
-                      ? 'warning'
-                      : 'success'
-                }
-              >
-                Status: {selectedItem.status}
-              </IonBadge>
+                {selectedItem.status !== 'Active' && (
+                  <span
+                    className={`item-status-tag ${statusClass(
+                      selectedItem.status
+                    )}`}
+                  >
+                    {selectedItem.status}
+                  </span>
+                )}
+              </div>
 
               <h1 className="item-details-title">{selectedItem.name}</h1>
 
@@ -641,7 +719,11 @@ const Home: FC<HomeProps> = ({
                 <IonIcon icon={calendarOutline} />
                 <div>
                   <strong>Date reported</strong>
-                  <p>{selectedItem.date || 'Date not provided'}</p>
+                  <p>
+                    {selectedItem.date
+                      ? `${formatRelativeDate(selectedItem.date)} · ${selectedItem.date}`
+                      : 'Date not provided'}
+                  </p>
                 </div>
               </div>
 
@@ -655,33 +737,52 @@ const Home: FC<HomeProps> = ({
                 </div>
               </div>
 
-              {canMessage(selectedItem) && (
-                <IonButton
-                  expand="block"
-                  fill="outline"
-                  disabled={messagingItemId === selectedItem.id}
-                  onClick={() => void handleMessage(selectedItem)}
-                >
-                  <IonIcon icon={chatbubbleEllipsesOutline} slot="start" />
-                  {messagingItemId === selectedItem.id
-                    ? 'Opening...'
-                    : selectedItem.type === 'Found'
-                      ? 'This is mine - message the finder'
-                      : 'I found this - message the owner'}
-                </IonButton>
+              {selectedItem.reporterName && (
+                <div className="item-details-row">
+                  <IonIcon icon={personCircleOutline} />
+                  <div>
+                    <strong>Reported by</strong>
+                    <p>
+                      {selectedItem.userId === currentUser?.uid
+                        ? 'You'
+                        : selectedItem.reporterName}
+                    </p>
+                  </div>
+                </div>
               )}
 
               {selectedItem.status !== 'Active' && (
-                <p>This item has already been claimed, so messaging is closed.</p>
+                <p className="item-details-note">
+                  This item has already been claimed, so messaging is closed.
+                </p>
               )}
 
-              <IonButton
-                expand="block"
-                className="submit-report-button"
-                onClick={() => setSelectedItem(null)}
-              >
-                Close Details
-              </IonButton>
+              <div className="item-details-actions">
+                {canMessage(selectedItem) && (
+                  <IonButton
+                    expand="block"
+                    className="item-primary-action"
+                    disabled={messagingItemId === selectedItem.id}
+                    onClick={() => void handleMessage(selectedItem)}
+                  >
+                    <IonIcon icon={chatbubbleEllipsesOutline} slot="start" />
+                    {messagingItemId === selectedItem.id
+                      ? 'Opening...'
+                      : selectedItem.type === 'Found'
+                        ? 'This is mine – message the finder'
+                        : 'I found this – message the owner'}
+                  </IonButton>
+                )}
+
+                <IonButton
+                  expand="block"
+                  fill="outline"
+                  className="item-secondary-action"
+                  onClick={() => setSelectedItem(null)}
+                >
+                  Close
+                </IonButton>
+              </div>
             </div>
           )}
         </IonContent>

@@ -1,21 +1,25 @@
-
 /* ========================================
    FINDIT THEME
 ======================================== */
 
 :root {
   --findit-teal: #0f766e;
+  --findit-teal-dark: #0b5d57;
   --findit-mint: #10b981;
   --findit-soft-mint: #e6f7f3;
-  --findit-warm-white: #fafaf8;
+  --findit-warm-white: #f6f8f7;
   --findit-text: #183b39;
-  --findit-muted: #718582;
+  --findit-muted: #5f7471;
+  --findit-border: #e3ece9;
+
+  --findit-found: #059669;
+  --findit-lost: #dc2626;
 }
 
 ion-app {
   --ion-background-color: var(--findit-warm-white);
   --ion-text-color: var(--findit-text);
-  font-family: "Segoe UI", sans-serif;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
 }
 
 /* ========================================
@@ -26,10 +30,12 @@ ion-app {
   --background: var(--findit-teal);
   --color: #ffffff;
   --min-height: 60px;
+  --border-width: 0;
 }
 
 .findit-header ion-title {
   font-weight: 800;
+  letter-spacing: 0.2px;
 }
 
 .findit-header ion-button {
@@ -48,32 +54,66 @@ ion-app {
   --background: var(--findit-warm-white);
 }
 
+/* Hero: continues the teal header, with live counts */
 .welcome-section {
-  margin: 18px 16px 14px;
-  padding: 26px 22px;
-  border-radius: 22px;
-  background: linear-gradient(135deg, #e6f7f3, #d2f4e9);
+  margin: 0 0 4px;
+  padding: 20px 20px 22px;
+  border-radius: 0 0 26px 26px;
+  background: linear-gradient(160deg, var(--findit-teal) 0%, var(--findit-teal-dark) 100%);
+  color: #ffffff;
 }
 
 .eyebrow {
-  color: var(--findit-teal);
+  margin: 0;
+  color: #a7f3d0;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.5px;
 }
 
 .welcome-section h1 {
-  margin: 12px 0;
-  color: var(--findit-teal);
-  font-size: 30px;
+  margin: 8px 0 6px;
+  color: #ffffff;
+  font-size: 26px;
   font-weight: 800;
   line-height: 1.2;
 }
 
 .welcome-description {
-  color: #486b65;
-  font-size: 14px;
-  line-height: 1.6;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.hero-stat strong {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.hero-stat span {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 /* ========================================
@@ -81,14 +121,17 @@ ion-app {
 ======================================== */
 
 .search-section {
-  padding: 0 12px;
+  position: relative;
+  z-index: 2;
+  margin-top: -2px;
+  padding: 10px 10px 0;
 }
 
 .findit-search {
   --background: #ffffff;
   --border-radius: 14px;
-  --box-shadow: 0 3px 14px rgba(15, 118, 110, 0.08);
-  --placeholder-color: #91a6a2;
+  --box-shadow: 0 4px 16px rgba(15, 118, 110, 0.1);
+  --placeholder-color: #8aa09c;
   --icon-color: var(--findit-teal);
 }
 
@@ -97,12 +140,12 @@ ion-app {
 ======================================== */
 
 .filter-section {
-  padding: 8px 16px 12px;
+  padding: 4px 16px 6px;
 }
 
 .filter-section ion-segment {
-  --background: #e6f7f3;
-  border-radius: 13px;
+  --background: #e9f2ef;
+  border-radius: 999px;
   padding: 4px;
 }
 
@@ -111,10 +154,12 @@ ion-app {
   --color-checked: #ffffff;
   --background-checked: var(--findit-teal);
   --indicator-color: transparent;
-  min-height: 40px;
-  font-size: 12px;
+  --border-radius: 999px;
+  min-height: 36px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: none;
+  letter-spacing: 0;
 }
 
 /* ========================================
@@ -123,33 +168,37 @@ ion-app {
 
 .section-heading {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 8px;
-  margin: 20px 18px 10px;
+  margin: 18px 18px 6px;
 }
 
 .section-heading h2 {
   margin: 0;
   color: var(--findit-text);
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 800;
 }
 
 .section-heading p {
-  margin-top: 5px;
+  margin: 3px 0 0;
   color: var(--findit-muted);
   font-size: 12px;
 }
 
 .item-count {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--findit-soft-mint);
   color: var(--findit-teal);
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 /* ========================================
-   ITEM CARDS
+   ITEM CARDS (shared with other pages)
 ======================================== */
 
 .items-list {
@@ -161,21 +210,26 @@ ion-app {
   align-items: flex-start;
   gap: 14px;
   margin: 10px 4px;
-  padding: 14px;
-  border: 1px solid #e5efeb;
-  border-radius: 17px;
+  padding: 12px;
+  border: 1px solid var(--findit-border);
+  border-radius: 18px;
   background: #ffffff;
-  box-shadow: 0 4px 14px rgba(24, 59, 57, 0.05);
+  box-shadow: 0 2px 10px rgba(24, 59, 57, 0.05);
 }
 
 .item-card-clickable {
   cursor: pointer;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .item-card-clickable:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 22px rgba(15, 118, 110, 0.12);
+}
+
+.item-card-clickable:active {
+  transform: scale(0.99);
 }
 
 .item-card-clickable:focus-visible {
@@ -184,16 +238,20 @@ ion-app {
 }
 
 .item-emoji {
+  position: relative;
   display: flex;
-  flex: 0 0 82px;
-  min-height: 92px;
+  flex: 0 0 104px;
+  width: 104px;
+  height: 104px;
   align-items: center;
   justify-content: center;
-  border-radius: 13px;
+  overflow: hidden;
+  border-radius: 14px;
   background: var(--findit-soft-mint);
 }
 
-.item-emoji span {
+.item-emoji span,
+.item-photo-fallback {
   font-size: 38px;
 }
 
@@ -213,14 +271,15 @@ ion-app {
 .item-info > p {
   margin: 0 0 10px;
   color: var(--findit-muted);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .item-info ion-badge {
   padding: 5px 9px;
-  border-radius: 7px;
+  margin-right: 4px;
+  border-radius: 999px;
   font-size: 10px;
   font-weight: 750;
   text-transform: none;
@@ -240,7 +299,7 @@ ion-app {
   display: grid;
   gap: 6px;
   color: var(--findit-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .item-meta span {
@@ -262,6 +321,187 @@ ion-app {
   color: var(--findit-teal);
   font-size: 12px;
   font-weight: 600;
+}
+
+/* ========================================
+   HOME CARD (new layout)
+======================================== */
+
+/* Found / Lost tag on top of the photo */
+.type-tag {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 10.5px !important;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+.type-tag-found {
+  background: var(--findit-found);
+}
+
+.type-tag-lost {
+  background: var(--findit-lost);
+}
+
+.type-tag-large {
+  top: 12px;
+  left: 12px;
+  padding: 5px 12px;
+  font-size: 12px !important;
+}
+
+.item-body {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 104px;
+}
+
+.item-topline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.item-category {
+  color: var(--findit-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.item-status-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.item-status-claimed {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.item-status-resolved {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.item-body h3 {
+  margin: 3px 0 4px;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.item-body > p.item-desc {
+  margin: 0 0 8px;
+  color: #4f6561;
+  font-size: 13px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.item-body .item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.item-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  cursor: default;
+}
+
+.item-mine-tag {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--findit-soft-mint);
+  color: var(--findit-teal);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.item-message-btn {
+  --background: var(--findit-teal);
+  --background-activated: var(--findit-teal-dark);
+  --background-hover: var(--findit-teal-dark);
+  --color: #ffffff;
+  --border-radius: 999px;
+  --box-shadow: none;
+  --padding-start: 12px;
+  --padding-end: 14px;
+  height: 32px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.item-chevron {
+  color: #a3b6b2;
+  font-size: 18px;
+}
+
+/* Loading skeleton */
+.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-block {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #edf3f1 25%, #f7faf9 50%, #edf3f1 75%);
+  background-size: 200% 100%;
+  animation: findit-shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-thumb {
+  flex: 0 0 104px;
+  height: 104px;
+  border-radius: 14px;
+}
+
+.skeleton-lines {
+  display: grid;
+  flex: 1;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.skeleton-line {
+  height: 12px;
+  width: 100%;
+}
+
+.skeleton-line.short {
+  width: 35%;
+}
+
+.skeleton-line.medium {
+  width: 60%;
+}
+
+@keyframes findit-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* ========================================
@@ -298,8 +538,9 @@ ion-app {
   justify-content: space-between;
   gap: 12px;
   margin: 18px 16px;
-  padding: 17px;
-  border-radius: 17px;
+  padding: 18px;
+  border: 1px dashed #9fd8c9;
+  border-radius: 18px;
   background: var(--findit-soft-mint);
 }
 
@@ -313,7 +554,7 @@ ion-app {
 .report-banner p {
   margin: 0;
   color: #58736e;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -321,9 +562,15 @@ ion-app {
   flex-shrink: 0;
   --background: var(--findit-teal);
   --color: #ffffff;
-  --border-radius: 10px;
-  font-size: 12px;
+  --border-radius: 999px;
+  --box-shadow: none;
+  font-size: 13px;
+  font-weight: 700;
   text-transform: none;
+}
+
+.bottom-space {
+  height: 12px;
 }
 
 /* ========================================
@@ -341,20 +588,43 @@ ion-app {
   font-size: 40px;
 }
 
+.empty-state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--findit-soft-mint);
+}
+
+.empty-state-icon ion-icon {
+  font-size: 32px;
+}
+
 .empty-state h3 {
+  margin: 14px 0 4px;
   color: var(--findit-text);
 }
 
 .empty-state p {
+  margin: 0 0 16px;
   font-size: 13px;
   line-height: 1.6;
 }
 
+.empty-state-button {
+  --background: var(--findit-teal);
+  --color: #ffffff;
+  --border-radius: 999px;
+  --box-shadow: none;
+  font-weight: 700;
+  text-transform: none;
+}
 
 /* ========================================
    BOTTOM NAVIGATION TABS
 ======================================== */
-
 
 ion-tab-bar.findit-tabbar {
   --background: #ffffff;
@@ -374,6 +644,7 @@ ion-tab-bar.findit-tabbar {
 
   border-top: 1px solid #e5efeb;
   background: #ffffff;
+  box-shadow: 0 -4px 16px rgba(24, 59, 57, 0.04);
   overflow: visible;
 }
 
@@ -393,17 +664,21 @@ ion-tab-bar.findit-tabbar ion-tab-button {
 
 ion-tab-bar.findit-tabbar ion-tab-button ion-icon {
   display: block;
-  font-size: 20px;
+  font-size: 21px;
 }
 
 ion-tab-bar.findit-tabbar ion-tab-button ion-label {
   display: block;
-  font-size: 9px;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
   white-space: nowrap;
   overflow: visible;
 }
 
-
+ion-tab-bar.findit-tabbar ion-tab-button.tab-selected ion-label {
+  font-weight: 800;
+}
 
 /* ========================================
    SUCCESS AND ERROR MESSAGES
@@ -412,7 +687,7 @@ ion-tab-bar.findit-tabbar ion-tab-button ion-label {
 .findit-message {
   margin: 12px 16px;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 13px;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -462,14 +737,15 @@ ion-tab-bar.findit-tabbar ion-tab-button ion-label {
 
 .item-details-panel {
   max-width: 620px;
-  margin: 12px auto;
-  padding: 24px;
+  margin: 4px auto 12px;
+  padding: 16px;
   border: 1px solid #e0eee9;
-  border-radius: 20px;
+  border-radius: 22px;
   background: #ffffff;
   color: var(--findit-text);
 }
 
+/* Old class, kept in case another page uses it */
 .item-details-emoji {
   display: flex;
   align-items: center;
@@ -482,19 +758,39 @@ ion-tab-bar.findit-tabbar ion-tab-button ion-label {
   font-size: 48px;
 }
 
+/* Big photo at the top of the details */
+.item-details-photo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 320px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--findit-soft-mint);
+}
+
+.item-details-photo .item-photo-fallback {
+  font-size: 64px;
+}
+
 .item-details-title {
-  margin: 18px 0 10px;
+  margin: 6px 0 8px;
   color: var(--findit-text);
-  font-size: 26px;
-  font-weight: 750;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
 .item-details-description {
-  margin: 0 0 24px;
-  color: var(--findit-muted);
+  margin: 0 0 16px;
+  color: #4f6561;
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -503,30 +799,74 @@ ion-tab-bar.findit-tabbar ion-tab-button ion-label {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 16px 0;
+  padding: 14px 0;
   border-top: 1px solid #e6f0ed;
 }
 
 .item-details-row ion-icon {
   flex-shrink: 0;
-  margin-top: 2px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--findit-soft-mint);
   color: var(--findit-teal);
-  font-size: 22px;
+  font-size: 18px;
 }
 
 .item-details-row strong {
   display: block;
-  margin-bottom: 5px;
-  color: var(--findit-text);
-  font-size: 14px;
+  margin-bottom: 3px;
+  color: var(--findit-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .item-details-row p {
   margin: 0;
-  color: var(--findit-muted);
-  font-size: 14px;
-  line-height: 1.5;
+  color: var(--findit-text);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.item-details-note {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.item-details-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.item-details-actions ion-button {
+  margin: 0;
+  height: 46px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.item-primary-action {
+  --background: var(--findit-teal);
+  --background-activated: var(--findit-teal-dark);
+  --color: #ffffff;
+  --border-radius: 12px;
+  --box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+}
+
+.item-secondary-action {
+  --color: var(--findit-teal);
+  --border-color: #b8ddd3;
+  --border-radius: 12px;
 }
 
 .item-details-panel .submit-report-button {
@@ -544,11 +884,17 @@ ion-tab-bar.findit-tabbar ion-tab-button ion-label {
   }
 
   .welcome-section {
+    margin: 16px 16px 4px;
     padding: 32px;
+    border-radius: 24px;
   }
 
   .welcome-section h1 {
-    font-size: 36px;
+    font-size: 34px;
+  }
+
+  .hero-stats {
+    max-width: 420px;
   }
 
   .items-list {
