@@ -16,7 +16,6 @@ import {
   checkmarkCircleOutline,
   eyeOffOutline,
   eyeOutline,
-  location,
   lockClosedOutline,
   mailOutline,
 } from 'ionicons/icons';
@@ -26,6 +25,7 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 
+import FindItLogo from '../components/FindItLogo';
 import { auth } from '../firebase';
 import './Auth.css';
 
@@ -149,7 +149,12 @@ const Login: FC<LoginProps> = ({ onLogin, onCreateAccount }) => {
       <IonContent fullscreen className="auth-content">
         <div className="auth-hero">
           <div className="auth-logo">
-            <IonIcon icon={location} />
+            <FindItLogo
+              size={68}
+              background="#ffffff"
+              foreground="#0f766e"
+              label=""
+            />
           </div>
           <h1>FindIt</h1>
           <p>University Lost &amp; Found</p>

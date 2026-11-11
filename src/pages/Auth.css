@@ -416,3 +416,75 @@
   line-height: 1.5;
   text-align: center;
 }
+
+/* ========================================
+   OLD CLASSES (kept in case another page still uses them)
+======================================== */
+
+.auth-brand {
+  text-align: center;
+  padding: 10px 0 24px;
+}
+
+.auth-brand .auth-logo {
+  margin: 0 auto 12px;
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.auth-brand h1 {
+  margin: 0;
+  color: #0f766e;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.auth-brand p {
+  margin: 7px 0 0;
+  color: #718582;
+  font-size: 13px;
+}
+
+.auth-field > ion-label {
+  display: block;
+  margin: 0 0 8px 3px;
+  color: #183b39;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+ion-item.auth-input {
+  --background: #f6f8f7;
+  --border-radius: 12px;
+  --padding-start: 12px;
+  --inner-padding-end: 8px;
+  --min-height: 50px;
+  border: 1px solid #e3ece9;
+  border-radius: 12px;
+}
+
+ion-item.auth-input ion-icon {
+  color: #0f766e;
+  font-size: 19px;
+  margin-right: 9px;
+}
+
+.password-toggle {
+  --color: #718582;
+  margin: 0;
+}
+
+.auth-error {
+  margin: 8px 2px;
+  font-size: 12px;
+}
+
+.register-wrapper {
+  padding-top: 12px;
+}
+
+/* The FindIt logo fills the white logo box */
+.auth-logo svg {
+  width: 100%;
+  height: 100%;
+}

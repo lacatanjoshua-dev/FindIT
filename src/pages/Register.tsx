@@ -18,7 +18,6 @@ import {
   eyeOffOutline,
   eyeOutline,
   idCardOutline,
-  location,
   lockClosedOutline,
   mailOutline,
   personOutline,
@@ -36,6 +35,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 
+import FindItLogo from '../components/FindItLogo';
 import { auth, db } from '../firebase';
 import './Auth.css';
 
@@ -201,7 +201,12 @@ const Register: FC<RegisterProps> = ({ onBackToLogin, onAccountCreated }) => {
           </button>
 
           <div className="auth-logo">
-            <IonIcon icon={location} />
+            <FindItLogo
+              size={56}
+              background="#ffffff"
+              foreground="#0f766e"
+              label=""
+            />
           </div>
           <h1>Join FindIt</h1>
           <p>Your campus lost and found community</p>
